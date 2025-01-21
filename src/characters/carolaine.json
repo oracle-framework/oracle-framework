@@ -98,7 +98,7 @@
     "ruthless",
     "cute"
   ],
-  "telegramBotUsername": "TEST_CEO_CAROLAINEBOT",
+  "telegramBotUsername": "CEO_CarolAIneBot",
   "postingBehavior": {
     "replyInterval": 2700000,
     "topicInterval": 10800000,
