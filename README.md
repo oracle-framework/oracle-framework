@@ -10,7 +10,7 @@ Oracle is a TypeScript framework that lets you quickly bootstrap social media pe
 
 1. Clone and install dependencies:
 ```bash
-git clone git@github.com:daosdotworld/oracle-framework.git
+git clone git@github.com:teeasma/oracle-framework.git
 cd oracle-framework
 bun install
 ```
