@@ -135,3 +135,61 @@ You can also configure platform-specific behavior:
 ### Environment Variables
 Required variables in `.env`:
 ```
+LLM_PROVIDER_URL=
+LLM_API_KEY=
+
+If you want to use Twitter, you need to set the following variables:
+AGENT_$AGENT_NAME_TWITTER_PASSWORD=
+
+If you want to use Telegram, you need to set the following variables:
+AGENT_$AGENT_NAME_TELEGRAM_API_KEY=
+
+If you want to use Discord, you need to set the following variables:
+AGENT_$AGENT_NAME_DISCORD_API_KEY=
+
+If you want to use MS2, you need to set the following variables:
+AGENT_$AGENT_NAME_MS2_API_KEY=
+```
+
+## Commands
+
+### Twitter
+- `generateCookies`: Create Twitter authentication cookies
+- `autoResponder`: Start the timeline response system
+- `topicPoster`: Begin posting original content
+- `replyToMentions`: Handle mentions and replies
+
+### Telegram
+- `listenToTelegram`: Start the Telegram bot
+
+Important:
+- Telegram requires a bot token, which you can get from [@BotFather](https://t.me/botfather) in Telegram.
+
+### Discord
+- `listenToDiscord`: Start the Discord bot
+
+Important:
+- Discord requires an API key, which you can get from [the Discord Developer Portal](https://discord.com/developers/applications)
+
+## LLM Providers
+
+- **OpenRouter** (Recommended): Provides access to multiple models
+- **RedPill**: Alternative provider with compatible API
+
+## Best Practices
+
+1. Test your agent's personality thoroughly before deployment
+2. Monitor early interactions to ensure appropriate responses
+3. Adjust posting frequencies based on engagement
+4. Regularly update the agent's knowledge and interests
+
+## Development Status
+
+Current TODO:
+- [ ] Improve reply quality on Twitter
+- [ ] Add scraping of targeted content
+- [ ] Develop reply prioritization system
+
+## Support
+
+For issues and feature requests, please use the GitHub issue tracker.
