@@ -1,13 +1,15 @@
 {
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.1",
+    "@types/better-sqlite3": "^7.6.9",
     "@types/node": "^22.8.6",
-    "bun-types": "^1.1.45",
     "pino-pretty": "^13.0.0",
     "prettier": "^3.4.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "better-sqlite3": "^9.4.3",
     "commander": "^13.1.0",
     "discord.js": "^14.17.3",
     "dotenv": "^16.4.5",
@@ -15,10 +17,13 @@
     "grammy": "^1.33.0",
     "openai": "^4.70.3",
     "pino": "^9.6.0",
-    "pino-roll": "^2.2.0",
-    "sqlite3": "^5.1.7"
+    "pino-roll": "^2.2.0"
   },
   "scripts": {
-    "format": "prettier --write \"src/**/*.{js,ts,tsx,json}\""
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "format": "prettier --write \"src/**/*.{js,ts,tsx,json}\"",
+    "watch": "tsc -w"
   }
 }

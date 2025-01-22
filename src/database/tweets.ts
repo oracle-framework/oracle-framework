@@ -1,4 +1,4 @@
-import { db } from "./connection";
+import { db } from "./index";
 import { Tweet } from "./types";
 
 export const insertTweet = (twitterUsername: string, tweet: Tweet): void => {

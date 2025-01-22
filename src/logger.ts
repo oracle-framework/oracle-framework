@@ -2,11 +2,11 @@ import { resolve } from "path";
 import pino from "pino";
 import rotate from "pino-roll";
 
-const isDevelopment = process.env.NODE_ENV !== "production";
+const isDevelopment = process.env["NODE_ENV"] !== "production";
 
 // Base logger configuration
 const baseConfig = {
-  level: process.env.LOG_LEVEL || "info",
+  level: process.env["LOG_LEVEL"] || "info",
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
     level: (label: string) => {

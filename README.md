@@ -12,7 +12,9 @@ Oracle is a TypeScript framework that lets you quickly bootstrap social media pe
 ```bash
 git clone git@github.com:teeasma/oracle-framework.git
 cd oracle-framework
-bun install
+npm install
+# or with yarn
+yarn install
 ```
 
 2. Set up environment:
@@ -31,18 +33,39 @@ cp .env.example .env
 5. Run:
 ```bash
 # Generate Twitter authentication
-bun run src/index.ts generateCookies <agent_name>
+npm run dev -- generateCookies <agent_name>
+# or with yarn
+yarn dev generateCookies <agent_name>
 
 # Start the agent's actions on Twitter
-bun run src/index.ts autoResponder <agent_name>    # Reply to timeline
-bun run src/index.ts topicPoster <agent_name>      # Post new topics
-bun run src/index.ts replyToMentions <agent_name>  # Handle mentions
+npm run dev -- autoResponder <agent_name>     # Reply to timeline
+npm run dev -- topicPoster <agent_name>       # Post new topics
+npm run dev -- replyToMentions <agent_name>   # Handle mentions
 
 # Start the agent's actions on Telegram
-bun run src/index.ts listenToTelegram <agent_name>
+npm run dev -- listenToTelegram <agent_name>
 
 # Start the agent's actions on Discord
-bun run src/index.ts listenToDiscord <agent_name>
+npm run dev -- listenToDiscord <agent_name>
+```
+
+## Development
+
+```bash
+# Build the project
+npm run build
+# or
+yarn build
+
+# Run in development mode
+npm run dev
+# or
+yarn dev
+
+# Format code
+npm run format
+# or
+yarn format
 ```
 
 ## Features
@@ -50,7 +73,7 @@ bun run src/index.ts listenToDiscord <agent_name>
 - **AI-Powered Interactions**: Uses LLMs to generate human-like responses and posts
 - **Personality System**: Define your agent's character, tone, and behavior
 - **Multi-Modal**: Can generate and handle text, images, and voice content
-- **Platform Support**: Supports Twitter, Telegram, Discord and more integrations coming soon.
+- **Platform Support**: Supports Twitter, Telegram, Discord and more integrations coming soon
 - **Engagement Tools**: Auto-posting, replies, mention handling
 
 ## Configuration
@@ -138,18 +161,20 @@ Required variables in `.env`:
 LLM_PROVIDER_URL=
 LLM_API_KEY=
 
-If you want to use Twitter, you need to set the following variables:
+# Twitter configuration (if using Twitter)
 AGENT_$AGENT_NAME_TWITTER_PASSWORD=
 
-If you want to use Telegram, you need to set the following variables:
+# Telegram configuration (if using Telegram)
 AGENT_$AGENT_NAME_TELEGRAM_API_KEY=
 
-If you want to use Discord, you need to set the following variables:
+# Discord configuration (if using Discord)
 AGENT_$AGENT_NAME_DISCORD_API_KEY=
 
-If you want to use MS2, you need to set the following variables:
+# MS2 configuration (if using MS2 for image generation)
 AGENT_$AGENT_NAME_MS2_API_KEY=
 ```
+
+Replace `$AGENT_NAME` with your agent's internal name in uppercase (e.g., CAROLAINE).
 
 ## Commands
 

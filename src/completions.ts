@@ -13,11 +13,9 @@ import {
   WAS_PROMPT_BANNED,
 } from "./prompts";
 
-require("dotenv").config();
-
 export const openai = new OpenAI({
-  baseURL: process.env.LLM_PROVIDER_URL || "",
-  apiKey: process.env.LLM_PROVIDER_API_KEY || "",
+  baseURL: process.env["LLM_PROVIDER_URL"] || "",
+  apiKey: process.env["LLM_PROVIDER_API_KEY"] || "",
 });
 
 const MAX_OUTPUT_TOKENS = 70;

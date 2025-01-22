@@ -11,7 +11,7 @@ import {
 import { getTweetByInputTweetId, insertTweet } from "../database";
 import { generateImageForTweet } from "../images";
 import { logger } from "../logger";
-import { CleanedTweet } from "../types";
+import { CleanedTweet } from "./types";
 import { randomInterval } from "../utils";
 
 interface Mention {
