@@ -291,7 +291,7 @@ const formatReply = (reply: string, character: Character) => {
   }
 
   if (character.postingBehavior.onlyKeepFirstSentence) {
-    logger.info("Only keeping first sentence of: ", formattedReply);
+    logger.debug("Only keeping first sentence of: ", formattedReply);
     formattedReply = formattedReply.split("\n")[0];
   }
 
