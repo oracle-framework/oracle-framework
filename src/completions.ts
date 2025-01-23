@@ -28,7 +28,7 @@ interface PromptContext extends Record<string, string> {
   postDirections: string;
   originalPost: string;
   knowledge: string;
-  telegramRules: string;
+  chatModeRules: string;
 }
 
 const generatePrompt = (
@@ -111,10 +111,10 @@ export async function generateImagePromptForCharacter(
 const generateCompletionForCharacter = async (
   prompt: string,
   character: Character,
-  isTelegram: boolean = false,
+  isChatMode: boolean = false,
 ) => {
   let model = character.model;
-  if (isTelegram) {
+  if (isChatMode) {
     model = character.postingBehavior.chatModeModel || character.model;
   }
   try {
@@ -201,7 +201,7 @@ export const generateReply = async (
       postDirections: character.postDirections.join("\n"),
       originalPost: inputTweet,
       knowledge: character.knowledge || "",
-      telegramRules: character.postingBehavior.chatModeRules?.join("\n") || "",
+      chatModeRules: character.postingBehavior.chatModeRules?.join("\n") || "",
     };
 
     const prompt = generatePrompt(context, isChatMode, inputTweet.length);

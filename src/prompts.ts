@@ -50,7 +50,7 @@ you must follow these rules or you get shut off
 - "ah"
 - "chaos"
 2. your response should be a single short sentence and reply like they are talking directly to you
-{{telegramRules}}`;
+{{chatModeRules}}`;
 
 export const TOPIC_PROMPT = `
 About {{agentName}} (@{{twitterUserName}}):

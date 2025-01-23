@@ -109,7 +109,7 @@ Create a new JSON file in `src/characters/` with the following structure:
     "replyInterval": 2700000,
     "topicInterval": 10800000,
     "removePeriods": true,
-    "telegramRules": ["Custom response rules for Telegram"]
+    "chatModeRules": ["Custom response rules for Telegram"]
   },
   "model": "anthropic/claude-3.5-sonnet",
   "fallbackModel": "meta-llama/llama-3.3-70b-instruct",
@@ -140,7 +140,7 @@ You can also configure platform-specific behavior:
 ```json
 {
   "telegramBotUsername": "YOUR_BOT_USERNAME",
-  "telegramRules": ["Custom response patterns"],
+  "chatModeRules": ["Custom response patterns"],
   "imageGenerationBehavior": {
     "provider": "ms2",
     "imageGenerationPromptModel": "meta-llama/llama-3.3-70b-instruct"
