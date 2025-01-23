@@ -1,6 +1,9 @@
+import dotenv from "dotenv";
 import { Command } from "commander";
 import * as commander from "commander";
-import dotenv from "dotenv";
+
+// Load environment variables at startup
+dotenv.config();
 
 import { CHARACTERS } from "./characters";
 import { logger } from "./logger";
@@ -8,9 +11,6 @@ import { CliProvider } from "./socialmedia/cli";
 import { DiscordProvider } from "./socialmedia/discord";
 import { TelegramProvider } from "./socialmedia/telegram";
 import { TwitterProvider } from "./socialmedia/twitter";
-
-// Load environment variables at startup
-dotenv.config();
 
 const program = new Command();
 
