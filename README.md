@@ -9,6 +9,7 @@ Oracle is a TypeScript framework that lets you quickly bootstrap social media pe
 ## Quick Start
 
 1. Clone and install dependencies:
+
 ```bash
 git clone git@github.com:teeasma/oracle-framework.git
 cd oracle-framework
@@ -18,19 +19,23 @@ yarn install
 ```
 
 2. Set up environment:
+
 ```bash
 cp .env.example .env
 ```
 
 3. Configure your `.env` file with:
+
 - LLM provider credentials (OpenRouter recommended)
 - Twitter account credentials
 - Telegram bot token (optional)
 
 4. Create your agent:
+
 - Copy and modify `src/characters/carolaine.json` with your agent's personality
 
 5. Run:
+
 ```bash
 # Generate Twitter authentication
 npm run dev -- generateCookies <agent_name>
@@ -79,6 +84,7 @@ yarn format
 ## Configuration
 
 ### Character Setup
+
 Characters are defined in JSON files under `src/characters/`. Each character file contains the AI agent's personality, behavior patterns, and platform-specific settings.
 
 Create a new JSON file in `src/characters/` with the following structure:
@@ -88,21 +94,13 @@ Create a new JSON file in `src/characters/` with the following structure:
   "internalName": "your_agent_name",
   "agentName": "Display Name",
   "twitterUserName": "handle",
-  "bio": [
-    "Multiple bio options"
-  ],
-  "lore": [
-    "Background stories and history",
-    "Helps establish character depth"
-  ],
+  "bio": ["Multiple bio options"],
+  "lore": ["Background stories and history", "Helps establish character depth"],
   "postDirections": [
     "Guidelines for posting style",
     "Tone and voice instructions"
   ],
-  "topics": [
-    "Subjects the agent discusses",
-    "Areas of expertise or interest"
-  ],
+  "topics": ["Subjects the agent discusses", "Areas of expertise or interest"],
   "adjectives": [
     "used for post generation",
     "i.e. generate a 'cute' post about the agent's favorite topic"
@@ -111,9 +109,7 @@ Create a new JSON file in `src/characters/` with the following structure:
     "replyInterval": 2700000,
     "topicInterval": 10800000,
     "removePeriods": true,
-    "telegramRules": [
-      "Custom response rules for Telegram"
-    ]
+    "telegramRules": ["Custom response rules for Telegram"]
   },
   "model": "anthropic/claude-3.5-sonnet",
   "fallbackModel": "meta-llama/llama-3.3-70b-instruct",
@@ -122,6 +118,7 @@ Create a new JSON file in `src/characters/` with the following structure:
 ```
 
 #### Key Configuration Fields:
+
 - **internalName**: Used in commands and logs (lowercase, no spaces)
 - **agentName**: Display name shown on social platforms
 - **twitterUserName**: Twitter handle without '@'
@@ -137,14 +134,13 @@ Create a new JSON file in `src/characters/` with the following structure:
 For a complete example, check out `src/characters/carolaine.json`. You can see her in action at [@carolainetrades](https://twitter.com/carolainetrades).
 
 #### Platform-Specific Settings
+
 You can also configure platform-specific behavior:
 
 ```json
 {
   "telegramBotUsername": "YOUR_BOT_USERNAME",
-  "telegramRules": [
-    "Custom response patterns"
-  ],
+  "telegramRules": ["Custom response patterns"],
   "imageGenerationBehavior": {
     "provider": "ms2",
     "imageGenerationPromptModel": "meta-llama/llama-3.3-70b-instruct"
@@ -156,7 +152,9 @@ You can also configure platform-specific behavior:
 ```
 
 ### Environment Variables
+
 Required variables in `.env`:
+
 ```
 LLM_PROVIDER_URL=
 LLM_API_KEY=
@@ -179,21 +177,26 @@ Replace `$AGENT_NAME` with your agent's internal name in uppercase (e.g., CAROLA
 ## Commands
 
 ### Twitter
+
 - `generateCookies`: Create Twitter authentication cookies
 - `autoResponder`: Start the timeline response system
 - `topicPoster`: Begin posting original content
 - `replyToMentions`: Handle mentions and replies
 
 ### Telegram
+
 - `listenToTelegram`: Start the Telegram bot
 
 Important:
+
 - Telegram requires a bot token, which you can get from [@BotFather](https://t.me/botfather) in Telegram.
 
 ### Discord
+
 - `listenToDiscord`: Start the Discord bot
 
 Important:
+
 - Discord requires an API key, which you can get from [the Discord Developer Portal](https://discord.com/developers/applications)
 
 ## LLM Providers
@@ -211,6 +214,7 @@ Important:
 ## Development Status
 
 Current TODO:
+
 - [ ] Improve reply quality on Twitter
 - [ ] Add scraping of targeted content
 - [ ] Develop reply prioritization system

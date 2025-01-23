@@ -1,7 +1,8 @@
+import * as readline from "readline";
+
 import { Character } from "../characters";
 import { generateReply } from "../completions";
 import { logger } from "../logger";
-import * as readline from 'readline';
 
 export class CliProvider {
   private character: Character;
@@ -11,17 +12,13 @@ export class CliProvider {
     this.character = character;
     this.rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
   }
 
   private async handleUserInput(input: string) {
     try {
-      const completion = await generateReply(
-        input,
-        this.character,
-        true
-      );
+      const completion = await generateReply(input, this.character, true);
 
       console.log(`\n${this.character.internalName}: ${completion.reply}\n`);
     } catch (e: any) {
@@ -30,17 +27,18 @@ export class CliProvider {
     }
   }
 
-
   public start() {
     logger.info(`CLI provider started for ${this.character.internalName}`);
-    console.log(`Starting chat with ${this.character.internalName}. Type your messages and press Enter. (Ctrl+C to quit)\n`);
+    console.log(
+      `Starting chat with ${this.character.internalName}. Type your messages and press Enter. (Ctrl+C to quit)\n`,
+    );
 
-    this.rl.on('line', async (input) => {
+    this.rl.on("line", async input => {
       await this.handleUserInput(input);
     });
 
-    this.rl.on('close', () => {
-      console.log('\nGoodbye!');
+    this.rl.on("close", () => {
+      console.log("\nGoodbye!");
       process.exit(0);
     });
   }

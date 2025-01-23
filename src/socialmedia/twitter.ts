@@ -11,8 +11,8 @@ import {
 import { getTweetByInputTweetId, insertTweet } from "../database";
 import { generateImageForTweet } from "../images";
 import { logger } from "../logger";
-import { CleanedTweet } from "./types";
 import { randomInterval } from "../utils";
+import { CleanedTweet } from "./types";
 
 interface Mention {
   id: string;
@@ -35,7 +35,7 @@ export class TwitterProvider {
     await this.scraper.login(
       this.character.twitterUserName,
       this.character.twitterPassword,
-      this.character.twitterEmail ? this.character.twitterEmail : undefined
+      this.character.twitterEmail ? this.character.twitterEmail : undefined,
     );
     const cookies = await this.scraper.getCookies();
     fs.writeFileSync(

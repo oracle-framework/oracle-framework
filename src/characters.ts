@@ -69,8 +69,7 @@ function loadCharacterConfigs(): Character[] {
       ...config,
       twitterPassword:
         process.env[`AGENT_${internalName}_TWITTER_PASSWORD`] || "",
-      twitterEmail:
-        process.env[`AGENT_${internalName}_TWITTER_EMAIL`] || "",
+      twitterEmail: process.env[`AGENT_${internalName}_TWITTER_EMAIL`] || "",
       telegramApiKey:
         process.env[`AGENT_${internalName}_TELEGRAM_API_KEY`] || "",
       imageGenerationBehavior:
