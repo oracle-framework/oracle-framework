@@ -38,20 +38,20 @@ cp .env.example .env
 
 ```bash
 # Generate Twitter authentication
-npm run dev -- generateCookies <agent_name>
+npm run dev -- generateCookies <username>
 # or with yarn
-yarn dev generateCookies <agent_name>
+yarn dev generateCookies <username>
 
 # Start the agent's actions on Twitter
-npm run dev -- autoResponder <agent_name>     # Reply to timeline
-npm run dev -- topicPoster <agent_name>       # Post new topics
-npm run dev -- replyToMentions <agent_name>   # Handle mentions
+npm run dev -- autoResponder <username>     # Reply to timeline
+npm run dev -- topicPoster <username>       # Post new topics
+npm run dev -- replyToMentions <username>   # Handle mentions
 
 # Start the agent's actions on Telegram
-npm run dev -- listenToTelegram <agent_name>
+npm run dev -- listenToTelegram <username>
 
 # Start the agent's actions on Discord
-npm run dev -- listenToDiscord <agent_name>
+npm run dev -- listenToDiscord <username>
 ```
 
 ## Development
@@ -83,34 +83,85 @@ yarn format
 
 ## Configuration
 
-### Character Setup
+### Environment Variables
 
-Characters are defined in JSON files under `src/characters/`. Each character file contains the AI agent's personality, behavior patterns, and platform-specific settings.
+Required variables in `.env`:
 
-Create a new JSON file in `src/characters/` with the following structure:
+```bash
+# LLM Provider configuration
+LLM_PROVIDER_URL=
+LLM_PROVIDER_API_KEY=
+
+# Agent configuration
+AGENT_TWITTER_PASSWORD=
+AGENT_TWITTER_EMAIL=
+AGENT_TELEGRAM_API_KEY=
+AGENT_DISCORD_API_KEY=
+AGENT_MS2_API_KEY=
+AGENT_OPENAI_API_KEY=
+```
+
+### Character Configuration
+
+The character is defined in a JSON file at `src/characters/character.json`. This file contains the AI agent's personality, behavior patterns, and platform-specific settings.
+
+The character file has the following structure:
 
 ```json
 {
-  "internalName": "your_agent_name",
+  "username": "your_agent_username",
   "agentName": "Display Name",
-  "twitterUserName": "handle",
-  "bio": ["Multiple bio options"],
-  "lore": ["Background stories and history", "Helps establish character depth"],
+  "bio": [
+    "Multiple bio options",
+    "Each one capturing a different aspect of the character"
+  ],
+  "lore": [
+    "Background stories and history",
+    "Events that shaped the character",
+    "Memorable moments and achievements"
+  ],
   "postDirections": [
     "Guidelines for posting style",
-    "Tone and voice instructions"
+    "Tone and voice instructions",
+    "Behavioral patterns to follow"
   ],
-  "topics": ["Subjects the agent discusses", "Areas of expertise or interest"],
+  "topics": [
+    "Main subjects the agent discusses",
+    "Areas of expertise",
+    "Recurring themes"
+  ],
   "adjectives": [
-    "used for post generation",
-    "i.e. generate a 'cute' post about the agent's favorite topic"
+    "personality traits",
+    "character descriptors",
+    "mood indicators"
   ],
   "postingBehavior": {
     "replyInterval": 2700000,
     "topicInterval": 10800000,
     "removePeriods": true,
-    "telegramRules": ["Custom response rules for Telegram"]
+    "telegramRules": [
+      "Custom response rules for Telegram",
+      "Format: if message contains X reply with Y"
+    ],
+    "telegramModel": "meta-llama/llama-3.3-70b-instruct",
+    "generateImagePrompt": true,
+    "imagePromptChance": 0.33,
+    "stickerChance": 0.2
   },
+  "imageGenerationBehavior": {
+    "provider": "ms2",
+    "imageGenerationPromptModel": "meta-llama/llama-3.3-70b-instruct"
+  },
+  "audioGenerationBehavior": {
+    "provider": "openai",
+    "openai": {
+      "model": "tts-1",
+      "voice": "nova",
+      "speed": 1.0
+    }
+  },
+  "telegramBotUsername": "YOUR_BOT_USERNAME",
+  "discordBotUsername": "YOUR_BOT_USERNAME",
   "model": "anthropic/claude-3.5-sonnet",
   "fallbackModel": "meta-llama/llama-3.3-70b-instruct",
   "temperature": 0.75
@@ -119,60 +170,24 @@ Create a new JSON file in `src/characters/` with the following structure:
 
 #### Key Configuration Fields:
 
-- **internalName**: Used in commands and logs (lowercase, no spaces)
+- **username**: The agent's username (used for Twitter and internal identification)
 - **agentName**: Display name shown on social platforms
-- **twitterUserName**: Twitter handle without '@'
-- **bio**: The agent's bio
-- **lore**: Background stories that shape the character's history
-- **postDirections**: Guidelines for how the agent should post
-- **topics**: Subjects the agent is knowledgeable about
+- **bio**: Array of possible bio texts that define the character
+- **lore**: Background stories that shape the character's history and personality
+- **postDirections**: Specific guidelines for how the agent should post and interact
+- **topics**: Subjects the agent is knowledgeable about and discusses
 - **adjectives**: Character traits that define the personality
 - **postingBehavior**: Technical settings for posting frequency and style
+  - `replyInterval`: Time between replies in milliseconds
+  - `topicInterval`: Time between topic posts in milliseconds
+  - `telegramRules`: Custom response patterns for Telegram
+  - `generateImagePrompt`: Whether to generate image prompts
+  - `imagePromptChance`: Probability of generating an image
+- **imageGenerationBehavior**: Settings for image generation capabilities
+- **audioGenerationBehavior**: Settings for voice/audio generation
 - **model**: Primary LLM to use for generation
-- **temperature**: "Creativity" level - 0.0-1.0, higher = more creative. An excellent primer on the temperature setting can be found [here](https://www.vellum.ai/llm-parameters/temperature).
-
-For a complete example, check out `src/characters/carolaine.json`. You can see her in action at [@carolainetrades](https://twitter.com/carolainetrades).
-
-#### Platform-Specific Settings
-
-You can also configure platform-specific behavior:
-
-```json
-{
-  "telegramBotUsername": "YOUR_BOT_USERNAME",
-  "telegramRules": ["Custom response patterns"],
-  "imageGenerationBehavior": {
-    "provider": "ms2",
-    "imageGenerationPromptModel": "meta-llama/llama-3.3-70b-instruct"
-  },
-  "voiceBehavior": {
-    "voice": "voice_id"
-  }
-}
-```
-
-### Environment Variables
-
-Required variables in `.env`:
-
-```
-LLM_PROVIDER_URL=
-LLM_API_KEY=
-
-# Twitter configuration (if using Twitter)
-AGENT_$AGENT_NAME_TWITTER_PASSWORD=
-
-# Telegram configuration (if using Telegram)
-AGENT_$AGENT_NAME_TELEGRAM_API_KEY=
-
-# Discord configuration (if using Discord)
-AGENT_$AGENT_NAME_DISCORD_API_KEY=
-
-# MS2 configuration (if using MS2 for image generation)
-AGENT_$AGENT_NAME_MS2_API_KEY=
-```
-
-Replace `$AGENT_NAME` with your agent's internal name in uppercase (e.g., CAROLAINE).
+- **fallbackModel**: Backup model if primary is unavailable
+- **temperature**: "Creativity" level (0.0-1.0, higher = more creative)
 
 ## Commands
 

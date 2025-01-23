@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 
 import { ImageProviderType, MS2Config } from "./images/types";
@@ -35,7 +34,7 @@ export type AudioGenerationBehavior = {
 
 export type Character = {
   agentName: string;
-  twitterUserName: string; // keep it all lowercase
+  username: string; // The agent's username (used for Twitter and internal identification)
   twitterPassword: string;
   twitterEmail?: string;
   telegramApiKey: string;
@@ -48,7 +47,6 @@ export type Character = {
   telegramBotUsername?: string; // not the tag but the username of the bot
   discordBotUsername?: string; // not the tag but the username of the bot
   discordApiKey?: string; // the api key for the bot
-  internalName: string; // internal name for the character
   postingBehavior: CharacterPostingBehavior;
   model: string;
   fallbackModel: string;
@@ -57,47 +55,38 @@ export type Character = {
   audioGenerationBehavior?: AudioGenerationBehavior;
 };
 
-function loadCharacterConfigs(): Character[] {
-  const charactersDir = path.join(__dirname, "characters");
-  const characterFiles = fs
-    .readdirSync(charactersDir)
-    .filter(file => file.endsWith(".json"));
+function loadCharacterConfig(): Character {
+  const characterPath = path.join(__dirname, "characters", "character.json");
+  const config = require(characterPath);
 
-  return characterFiles.map(file => {
-    const config = require(path.join(charactersDir, file));
-    const internalName = config.internalName.toUpperCase();
-
-    // Add environment variables
-    return {
-      ...config,
-      twitterPassword:
-        process.env[`AGENT_${internalName}_TWITTER_PASSWORD`] || "",
-      twitterEmail: process.env[`AGENT_${internalName}_TWITTER_EMAIL`] || "",
-      telegramApiKey:
-        process.env[`AGENT_${internalName}_TELEGRAM_API_KEY`] || "",
-      imageGenerationBehavior:
-        config.imageGenerationBehavior?.provider === "ms2"
-          ? {
-              ...config.imageGenerationBehavior,
-              ms2: {
-                ...config.imageGenerationBehavior.ms2,
-                apiKey: process.env[`AGENT_${internalName}_MS2_API_KEY`] || "",
-              },
-            }
-          : config.imageGenerationBehavior,
-      audioGenerationBehavior:
-        config.audioGenerationBehavior?.provider === "openai"
-          ? {
-              ...config.audioGenerationBehavior,
-              openai: {
-                ...config.audioGenerationBehavior.openai,
-                apiKey: process.env[`AGENT_${internalName}_OPENAI_API_KEY`] || "",
-              },
-            }
-          : config.audioGenerationBehavior,
-    };
-  });
+  // Add environment variables
+  return {
+    ...config,
+    twitterPassword: process.env['AGENT_TWITTER_PASSWORD'] || "",
+    twitterEmail: process.env['AGENT_TWITTER_EMAIL'] || "",
+    telegramApiKey: process.env['AGENT_TELEGRAM_API_KEY'] || "",
+    imageGenerationBehavior:
+      config.imageGenerationBehavior?.provider === "ms2"
+        ? {
+            ...config.imageGenerationBehavior,
+            ms2: {
+              ...config.imageGenerationBehavior.ms2,
+              apiKey: process.env['AGENT_MS2_API_KEY'] || "",
+            },
+          }
+        : config.imageGenerationBehavior,
+    audioGenerationBehavior:
+      config.audioGenerationBehavior?.provider === "openai"
+        ? {
+            ...config.audioGenerationBehavior,
+            openai: {
+              ...config.audioGenerationBehavior.openai,
+              apiKey: process.env['AGENT_OPENAI_API_KEY'] || "",
+            },
+          }
+        : config.audioGenerationBehavior,
+  };
 }
 
-// Load all characters
-export const CHARACTERS = loadCharacterConfigs();
+// Load the character
+export const CHARACTER = loadCharacterConfig();

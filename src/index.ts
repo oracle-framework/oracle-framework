@@ -1,11 +1,10 @@
 import dotenv from "dotenv";
 import { Command } from "commander";
-import * as commander from "commander";
 
 // Load environment variables at startup
 dotenv.config();
 
-import { CHARACTERS } from "./characters";
+import { CHARACTER, Character } from "./characters";
 import { logger } from "./logger";
 import { CliProvider } from "./socialmedia/cli";
 import { DiscordProvider } from "./socialmedia/discord";
@@ -21,118 +20,73 @@ program
   .description("CLI to manage social media agents")
   .version("0.0.1");
 
-const characterNames = CHARACTERS.map(c => c.internalName);
+// We only have one character now
+const username = CHARACTER.username;
 
 program
-  .command("generateCookies")
-  .description("Generate Twitter cookies for an agent")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
-    if (!character) {
-      logger.error(`No agent found for ${internalName}`);
-      process.exit(1);
+  .command("telegram")
+  .description("Start the Telegram bot")
+  .argument("<username>", "Username of the agent")
+  .action(async providedName => {
+    if (providedName !== username) {
+      logger.error(`No agent found for ${providedName}`);
+      return;
     }
-    const twitterProvider = new TwitterProvider(character);
-    await twitterProvider.login();
+    await startTelegramBot(CHARACTER);
   });
 
 program
-  .command("listenToTelegram")
-  .description("Start Telegram bot for an agent")
-  .addArgument(
-    new commander.Argument(
-      "<internalName>",
-      "Internal name of the agent",
-    ).choices(characterNames),
-  )
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
-    if (!character) {
-      logger.error(`No agent found for ${internalName}`);
-      process.exit(1);
+  .command("twitter")
+  .description("Start the Twitter bot")
+  .argument("<username>", "Username of the agent")
+  .action(async providedName => {
+    if (providedName !== username) {
+      logger.error(`No agent found for ${providedName}`);
+      return;
     }
-    const telegramProvider = new TelegramProvider(character);
-    telegramProvider.start();
+    await startTwitterBot(CHARACTER);
+  });
+
+program
+  .command("discord")
+  .description("Start the Discord bot")
+  .argument("<username>", "Username of the agent")
+  .action(async providedName => {
+    if (providedName !== username) {
+      logger.error(`No agent found for ${providedName}`);
+      return;
+    }
+    await startDiscordBot(CHARACTER);
   });
 
 program
   .command("cli")
-  .description("Start CLI interface for an agent")
-  .addArgument(
-    new commander.Argument(
-      "<internalName>",
-      "Internal name of the agent",
-    ).choices(characterNames),
-  )
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
-    if (!character) {
-      logger.error(`No agent found for ${internalName}`);
-      process.exit(1);
+  .description("Start the CLI bot")
+  .argument("<username>", "Username of the agent")
+  .action(async providedName => {
+    if (providedName !== username) {
+      logger.error(`No agent found for ${providedName}`);
+      return;
     }
-    // const telegramProvider = new TelegramProvider(character);
-    // telegramProvider.start();
-    const cliProvider = new CliProvider(character);
-    cliProvider.start();
-  });
-
-program
-  .command("listenToDiscord")
-  .description("Start Discord bot for an agent")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
-    if (!character) {
-      logger.error(`No agent found for ${internalName}`);
-      process.exit(1);
-    }
-    const discordProvider = new DiscordProvider(character);
-    await discordProvider.start();
-  });
-
-program
-  .command("autoResponder")
-  .description("Start auto-responder for Twitter")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
-    if (!character) {
-      logger.error(`No agent found for ${internalName}`);
-      process.exit(1);
-    }
-    const twitterProvider = new TwitterProvider(character);
-    await twitterProvider.initWithCookies();
-    await twitterProvider.startAutoResponder();
-  });
-
-program
-  .command("topicPost")
-  .description("Start topic posting for Twitter")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
-    if (!character) {
-      throw new Error(`Character not found: ${internalName}`);
-    }
-    const twitterProvider = new TwitterProvider(character);
-    await twitterProvider.initWithCookies();
-    await twitterProvider.startTopicPosts();
-  });
-
-program
-  .command("replyToMentions")
-  .description("Start replying to Twitter mentions")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
-    if (!character) {
-      logger.error(`No agent found for ${internalName}`);
-      process.exit(1);
-    }
-    const twitterProvider = new TwitterProvider(character);
-    await twitterProvider.initWithCookies();
-    await twitterProvider.startReplyingToMentions();
+    const cli = new CliProvider(CHARACTER);
+    await cli.start();
   });
 
 program.parse();
+
+// Helper functions for starting bots
+async function startTelegramBot(character: Character) {
+  const telegramProvider = new TelegramProvider(character);
+  await telegramProvider.start();
+}
+
+async function startTwitterBot(character: Character) {
+  const twitterProvider = new TwitterProvider(character);
+  await twitterProvider.initWithCookies();
+  await twitterProvider.startAutoResponder();
+}
+
+async function startDiscordBot(character: Character) {
+  const discordProvider = new DiscordProvider(character);
+  await discordProvider.start();
+}
