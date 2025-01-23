@@ -33,7 +33,7 @@ export type VoiceBehavior = {
 export type Character = {
   agentName: string;
   twitterUserName: string; // keep it all lowercase
-  password: string;
+  twitterPassword: string;
   telegramApiKey: string;
   bio: string[];
   lore: string[];
