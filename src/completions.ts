@@ -234,83 +234,6 @@ export const generateReply = async (
   }
 };
 
-interface SpeechRequest {
-  model: string;
-  input: string;
-  voice: string;
-  response_format: "mp3" | "wav" | "opus" | "flac";
-  speed: number;
-}
-
-export async function generateAudio(
-  prompt: string,
-  character: Character,
-): Promise<Response> {
-  if (!character.voiceBehavior?.voice) {
-    throw new Error("Voice behavior is not set for this character");
-  }
-  const payload: SpeechRequest = {
-    model: "kokoro", // Not used but required for compatibility
-    input: prompt,
-    voice: character.voiceBehavior?.voice,
-    response_format: "opus", // Supported: mp3, wav, opus, flac
-    speed: 1.1,
-  };
-
-  const response = await fetch("http://localhost:8880/v1/audio/speech", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  return response;
-}
-
-const checkAndReverseFud = async (
-  reply: string,
-  context: PromptContext,
-  inputTweet: string,
-  character: Character,
-) => {
-  const fudContext = {
-    agentName: context.agentName,
-    twitterUserName: context.twitterUserName,
-    originalPost: inputTweet,
-    reply,
-  };
-
-  const fudPrompt = replaceTemplateVariables(IS_REPLY_FUD_PROMPT, fudContext);
-  let isFudContent = await generateCompletionForCharacter(fudPrompt, character);
-
-  if (isFudContent !== "YES") return reply;
-
-  context.originalPost = reply;
-  const reverseFudPrompt = replaceTemplateVariables(
-    REVERSE_FUD_TO_SHILL_PROMPT,
-    context,
-  );
-  logger.info({ reverseFudPrompt });
-
-  let reverseFudContent = await generateCompletionForCharacter(
-    reverseFudPrompt,
-    character,
-  );
-  // Check for banned prompts in the reversed FUD content
-  reverseFudContent = await handleBannedAndLengthRetries(
-    reverseFudPrompt,
-    reverseFudContent,
-    character,
-  );
-
-  logger.info(
-    `<b>FUD FOUND</b>:\n\n original reply: '${reply}'\n\n New reply: '${reverseFudContent}'`,
-  );
-
-  return reverseFudContent;
-};
-
 export const generateTopicPost = async (character: Character) => {
   const topic = character
     .topics!.sort(() => Math.random() - 0.5)
@@ -386,3 +309,46 @@ function forceCharacterToReplyOneLiners(character: Character) {
   character.postingBehavior.onlyKeepFirstSentence = true;
   character.postingBehavior.removePeriods = true;
 }
+
+const checkAndReverseFud = async (
+  reply: string,
+  context: PromptContext,
+  inputTweet: string,
+  character: Character,
+) => {
+  const fudContext = {
+    agentName: context.agentName,
+    twitterUserName: context.twitterUserName,
+    originalPost: inputTweet,
+    reply,
+  };
+
+  const fudPrompt = replaceTemplateVariables(IS_REPLY_FUD_PROMPT, fudContext);
+  let isFudContent = await generateCompletionForCharacter(fudPrompt, character);
+
+  if (isFudContent !== "YES") return reply;
+
+  context.originalPost = reply;
+  const reverseFudPrompt = replaceTemplateVariables(
+    REVERSE_FUD_TO_SHILL_PROMPT,
+    context,
+  );
+  logger.info({ reverseFudPrompt });
+
+  let reverseFudContent = await generateCompletionForCharacter(
+    reverseFudPrompt,
+    character,
+  );
+  // Check for banned prompts in the reversed FUD content
+  reverseFudContent = await handleBannedAndLengthRetries(
+    reverseFudPrompt,
+    reverseFudContent,
+    character,
+  );
+
+  logger.info(
+    `<b>FUD FOUND</b>:\n\n original reply: '${reply}'\n\n New reply: '${reverseFudContent}'`,
+  );
+
+  return reverseFudContent;
+};

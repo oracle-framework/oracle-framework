@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { ImageProviderType, MS2Config } from "./images/types";
+import { AudioProviderType, OpenAIAudioConfig, KokoroAudioConfig } from "./audio/types";
 
 export type CharacterPostingBehavior = {
   replyInterval?: number; // if set, post a reply every <replyInterval> seconds instead of REPLY_INTERVAL
@@ -26,8 +27,10 @@ export type ImageGenerationBehavior = {
   ms2?: MS2Config;
 };
 
-export type VoiceBehavior = {
-  voice: string;
+export type AudioGenerationBehavior = {
+  provider: AudioProviderType;
+  openai?: OpenAIAudioConfig;
+  kokoro?: KokoroAudioConfig;
 };
 
 export type Character = {
@@ -51,7 +54,7 @@ export type Character = {
   fallbackModel: string;
   temperature: number;
   imageGenerationBehavior?: ImageGenerationBehavior;
-  voiceBehavior?: VoiceBehavior;
+  audioGenerationBehavior?: AudioGenerationBehavior;
 };
 
 function loadCharacterConfigs(): Character[] {
@@ -82,6 +85,16 @@ function loadCharacterConfigs(): Character[] {
               },
             }
           : config.imageGenerationBehavior,
+      audioGenerationBehavior:
+        config.audioGenerationBehavior?.provider === "openai"
+          ? {
+              ...config.audioGenerationBehavior,
+              openai: {
+                ...config.audioGenerationBehavior.openai,
+                apiKey: process.env[`AGENT_${internalName}_OPENAI_API_KEY`] || "",
+              },
+            }
+          : config.audioGenerationBehavior,
     };
   });
 }

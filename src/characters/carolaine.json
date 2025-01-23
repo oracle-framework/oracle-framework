@@ -130,6 +130,14 @@
       "cheesworldChance": 0.2
     }
   },
+  "audioGenerationBehavior": {
+    "provider": "openai",
+    "openai": {
+      "model": "tts-1",
+      "voice": "nova",
+      "speed": 1.0
+    }
+  },
   "model": "anthropic/claude-3.5-sonnet",
   "fallbackModel": "meta-llama/llama-3.3-70b-instruct",
   "temperature": 0.75,
