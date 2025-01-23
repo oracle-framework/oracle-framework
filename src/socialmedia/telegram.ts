@@ -1,7 +1,8 @@
 import { Bot, InputFile } from "grammy";
 
 import { Character } from "../characters";
-import { generateAudio, generateReply } from "../completions";
+import { generateReply } from "../completions";
+import { generateAudio } from "../audio";
 import { logger } from "../logger";
 
 export class TelegramProvider {
@@ -35,7 +36,7 @@ export class TelegramProvider {
 
       const isAudio = ctx.msg.text?.toLowerCase().includes("audio");
       let cleanedMessage = telegramMessageToReplyTo;
-      if (isAudio && this.character.voiceBehavior?.voice) {
+      if (isAudio && this.character.audioGenerationBehavior?.provider) {
         cleanedMessage = telegramMessageToReplyTo
           .toLowerCase()
           .replace("audio", "");
@@ -56,17 +57,24 @@ export class TelegramProvider {
   }
 
   private async sendResponse(ctx: any, reply: string, isAudio: boolean) {
-    if (isAudio && this.character.voiceBehavior?.voice) {
+    if (isAudio && this.character.audioGenerationBehavior?.provider) {
       const audioCompletion = await generateAudio(reply, this.character);
-      const audioBuffer = await audioCompletion.arrayBuffer();
-      const audioUint8Array = new Uint8Array(audioBuffer);
-      await ctx.api.sendVoice(
-        ctx.chatId,
-        new InputFile(audioUint8Array, "audio.ogg"),
-        {
+      if (audioCompletion) {
+        const audioBuffer = await audioCompletion.arrayBuffer();
+        const audioUint8Array = new Uint8Array(audioBuffer);
+        await ctx.api.sendVoice(
+          ctx.chatId,
+          new InputFile(audioUint8Array, "audio.ogg"),
+          {
+            reply_parameters: { message_id: ctx.msg.message_id },
+          },
+        );
+      } else {
+        // If no audio was generated, fall back to text response
+        await ctx.reply(reply, {
           reply_parameters: { message_id: ctx.msg.message_id },
-        },
-      );
+        });
+      }
     } else {
       await ctx.reply(reply, {
         reply_parameters: { message_id: ctx.msg.message_id },
