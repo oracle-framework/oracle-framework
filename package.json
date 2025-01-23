@@ -1,6 +1,5 @@
 {
   "devDependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^5.2.1",
     "@types/better-sqlite3": "^7.6.9",
     "@types/node": "^22.8.6",
     "pino-pretty": "^13.0.0",
