@@ -115,7 +115,7 @@ const generateCompletionForCharacter = async (
 ) => {
   let model = character.model;
   if (isTelegram) {
-    model = character.postingBehavior.telegramModel || character.model;
+    model = character.postingBehavior.chatModeModel || character.model;
   }
   try {
     const completion = await openai.chat.completions.create({
@@ -201,7 +201,7 @@ export const generateReply = async (
       postDirections: character.postDirections.join("\n"),
       originalPost: inputTweet,
       knowledge: character.knowledge || "",
-      telegramRules: character.postingBehavior.telegramRules?.join("\n") || "",
+      telegramRules: character.postingBehavior.chatModeRules?.join("\n") || "",
     };
 
     const prompt = generatePrompt(context, isChatMode, inputTweet.length);
