@@ -10,6 +10,7 @@ import { logger } from "./logger";
 import { DiscordProvider } from "./socialmedia/discord";
 import { TelegramProvider } from "./socialmedia/telegram";
 import { TwitterProvider } from "./socialmedia/twitter";
+import { CliProvider } from "./socialmedia/cli";
 
 const program = new Command();
 
@@ -53,6 +54,27 @@ program
     }
     const telegramProvider = new TelegramProvider(character);
     telegramProvider.start();
+  });
+
+program
+  .command("cli")
+  .description("Start CLI interface for an agent")
+  .addArgument(
+    new commander.Argument(
+      "<internalName>",
+      "Internal name of the agent",
+    ).choices(characterNames),
+  )
+  .action(async internalName => {
+    const character = CHARACTERS.find(x => x.internalName === internalName);
+    if (!character) {
+      logger.error(`No agent found for ${internalName}`);
+      process.exit(1);
+    }
+    // const telegramProvider = new TelegramProvider(character);
+    // telegramProvider.start();
+    const cliProvider = new CliProvider(character);
+    cliProvider.start();
   });
 
 program
