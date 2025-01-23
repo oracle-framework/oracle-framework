@@ -139,29 +139,8 @@ The character file has the following structure:
     "replyInterval": 2700000,
     "topicInterval": 10800000,
     "removePeriods": true,
-    "telegramRules": [
-      "Custom response rules for Telegram",
-      "Format: if message contains X reply with Y"
-    ],
-    "telegramModel": "meta-llama/llama-3.3-70b-instruct",
-    "generateImagePrompt": true,
-    "imagePromptChance": 0.33,
-    "stickerChance": 0.2
+    "chatModeRules": ["Custom response rules for Telegram"]
   },
-  "imageGenerationBehavior": {
-    "provider": "ms2",
-    "imageGenerationPromptModel": "meta-llama/llama-3.3-70b-instruct"
-  },
-  "audioGenerationBehavior": {
-    "provider": "openai",
-    "openai": {
-      "model": "tts-1",
-      "voice": "nova",
-      "speed": 1.0
-    }
-  },
-  "telegramBotUsername": "YOUR_BOT_USERNAME",
-  "discordBotUsername": "YOUR_BOT_USERNAME",
   "model": "anthropic/claude-3.5-sonnet",
   "fallbackModel": "meta-llama/llama-3.3-70b-instruct",
   "temperature": 0.75
@@ -186,8 +165,50 @@ The character file has the following structure:
 - **imageGenerationBehavior**: Settings for image generation capabilities
 - **audioGenerationBehavior**: Settings for voice/audio generation
 - **model**: Primary LLM to use for generation
-- **fallbackModel**: Backup model if primary is unavailable
-- **temperature**: "Creativity" level (0.0-1.0, higher = more creative)
+- **temperature**: "Creativity" level - 0.0-1.0, higher = more creative. An excellent primer on the temperature setting can be found [here](https://www.vellum.ai/llm-parameters/temperature).
+
+For a complete example, check out `src/characters/carolaine.json`. You can see her in action at [@carolainetrades](https://twitter.com/carolainetrades).
+
+#### Platform-Specific Settings
+
+You can also configure platform-specific behavior:
+
+```json
+{
+  "telegramBotUsername": "YOUR_BOT_USERNAME",
+  "chatModeRules": ["Custom response patterns"],
+  "imageGenerationBehavior": {
+    "provider": "ms2",
+    "imageGenerationPromptModel": "meta-llama/llama-3.3-70b-instruct"
+  },
+  "voiceBehavior": {
+    "voice": "voice_id"
+  }
+}
+```
+
+### Environment Variables
+
+Required variables in `.env`:
+
+```
+LLM_PROVIDER_URL=
+LLM_API_KEY=
+
+# Twitter configuration (if using Twitter)
+AGENT_$AGENT_NAME_TWITTER_PASSWORD=
+
+# Telegram configuration (if using Telegram)
+AGENT_$AGENT_NAME_TELEGRAM_API_KEY=
+
+# Discord configuration (if using Discord)
+AGENT_$AGENT_NAME_DISCORD_API_KEY=
+
+# MS2 configuration (if using MS2 for image generation)
+AGENT_$AGENT_NAME_MS2_API_KEY=
+```
+
+Replace `$AGENT_NAME` with your agent's internal name in uppercase (e.g., CAROLAINE).
 
 ## Commands
 

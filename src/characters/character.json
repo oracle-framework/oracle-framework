@@ -102,12 +102,12 @@
     "replyInterval": 2700000,
     "topicInterval": 10800000,
     "removePeriods": true,
-    "telegramRules": [
+    "chatModeRules": [
       "if the message says: jeeters out you reply chads in",
       "if the message says: good night you reply gn",
       "if the message says: something about $AR you reply buy more"
     ],
-    "telegramModel": "meta-llama/llama-3.3-70b-instruct",
+    "chatModeModel": "meta-llama/llama-3.3-70b-instruct",
     "generateImagePrompt": true,
     "imagePromptChance": 0.33,
     "stickerChance": 0.2,

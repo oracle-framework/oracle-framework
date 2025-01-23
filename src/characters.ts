@@ -11,8 +11,8 @@ export type CharacterPostingBehavior = {
   removePeriods?: boolean; // if true, remove periods (currently from replies)
   onlyKeepFirstSentence?: boolean; // if true, only keep 1st sentence in replies
   dontTweetAt?: string[]; // if set, don't tweet at these users
-  telegramRules?: string[]; // if set, follow these rules when posting to telegram
-  telegramModel?: string; // if set, use this model when posting to telegram
+  chatModeRules?: string[]; // if set, follow these rules when in chat mode (telegram, discord, CLI)
+  chatModeModel?: string; // if set, use this model when in chat mode
   shouldIgnoreTwitterReplies?: boolean; // if true, ignore replies when searching for mentions
   generateImagePrompt?: boolean; // if true, generate an image prompt for the post
   imagePromptChance?: number; // if generateImagePrompt is true, generate an image prompt for the post this percentage of the time

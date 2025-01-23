@@ -7,7 +7,7 @@ import {
   IS_REPLY_FUD_PROMPT,
   REPLY_GUY_PROMPT,
   REPLY_GUY_PROMPT_SHORT,
-  REPLY_GUY_PROMPT_TELEGRAM,
+  REPLY_GUY_PROMPT_CHAT_MODE,
   REVERSE_FUD_TO_SHILL_PROMPT,
   TOPIC_PROMPT,
   WAS_PROMPT_BANNED,
@@ -28,19 +28,19 @@ interface PromptContext extends Record<string, string> {
   postDirections: string;
   originalPost: string;
   knowledge: string;
-  telegramRules: string;
+  chatModeRules: string;
 }
 
 const generatePrompt = (
   context: PromptContext,
-  isTelegram: boolean,
+  isChatMode: boolean,
   inputTweetLength: number,
 ) => {
-  if (isTelegram) {
+  if (isChatMode) {
     const basePrompt =
       inputTweetLength <= 20
         ? REPLY_GUY_PROMPT_SHORT
-        : REPLY_GUY_PROMPT_TELEGRAM;
+        : REPLY_GUY_PROMPT_CHAT_MODE;
 
     return context.knowledge
       ? replaceTemplateVariables(
@@ -110,11 +110,11 @@ export async function generateImagePromptForCharacter(
 const generateCompletionForCharacter = async (
   prompt: string,
   character: Character,
-  isTelegram: boolean = false,
+  isChatMode: boolean = false,
 ) => {
   let model = character.model;
-  if (isTelegram) {
-    model = character.postingBehavior.telegramModel || character.model;
+  if (isChatMode) {
+    model = character.postingBehavior.chatModeModel || character.model;
   }
   try {
     const completion = await openai.chat.completions.create({
@@ -179,10 +179,10 @@ export const handleBannedAndLengthRetries = async (
 export const generateReply = async (
   inputTweet: string,
   character: Character,
-  isTelegram: boolean = false,
+  isChatMode: boolean = false,
 ) => {
   try {
-    if (isTelegram) {
+    if (isChatMode) {
       forceCharacterToReplyOneLiners(character);
     }
 
@@ -200,18 +200,18 @@ export const generateReply = async (
       postDirections: character.postDirections.join("\n"),
       originalPost: inputTweet,
       knowledge: character.knowledge || "",
-      telegramRules: character.postingBehavior.telegramRules?.join("\n") || "",
+      chatModeRules: character.postingBehavior.chatModeRules?.join("\n") || "",
     };
 
-    const prompt = generatePrompt(context, isTelegram, inputTweet.length);
+    const prompt = generatePrompt(context, isChatMode, inputTweet.length);
     let reply = await generateCompletionForCharacter(
       prompt,
       character,
-      isTelegram,
+      isChatMode,
     );
 
     // Add ban/length handling
-    if (!isTelegram) {
+    if (!isChatMode) {
       reply = await handleBannedAndLengthRetries(
         prompt,
         reply,
@@ -221,7 +221,7 @@ export const generateReply = async (
       );
     }
 
-    if (!isTelegram) {
+    if (!isChatMode) {
       reply = await checkAndReverseFud(reply, context, inputTweet, character);
     }
 
@@ -290,7 +290,7 @@ const formatReply = (reply: string, character: Character) => {
   }
 
   if (character.postingBehavior.onlyKeepFirstSentence) {
-    logger.info("Only keeping first sentence of: ", formattedReply);
+    logger.debug("Only keeping first sentence of: ", formattedReply);
     formattedReply = formattedReply.split("\n")[0];
   }
 
