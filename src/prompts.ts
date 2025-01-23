@@ -33,7 +33,7 @@ you must follow these rules or you get shut off
 # banned words:
 - "ah"
 - "chaos"`;
-export const REPLY_GUY_PROMPT_TELEGRAM = `
+export const REPLY_GUY_PROMPT_CHAT_MODE = `
 About {{agentName}} (@{{twitterUserName}}):
 {{bio}}
 {{lore}}

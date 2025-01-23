@@ -7,7 +7,7 @@ import {
   IS_REPLY_FUD_PROMPT,
   REPLY_GUY_PROMPT,
   REPLY_GUY_PROMPT_SHORT,
-  REPLY_GUY_PROMPT_TELEGRAM,
+  REPLY_GUY_PROMPT_CHAT_MODE,
   REVERSE_FUD_TO_SHILL_PROMPT,
   TOPIC_PROMPT,
   WAS_PROMPT_BANNED,
@@ -33,14 +33,14 @@ interface PromptContext extends Record<string, string> {
 
 const generatePrompt = (
   context: PromptContext,
-  isTelegram: boolean,
+  isChatMode: boolean,
   inputTweetLength: number,
 ) => {
-  if (isTelegram) {
+  if (isChatMode) {
     const basePrompt =
       inputTweetLength <= 20
         ? REPLY_GUY_PROMPT_SHORT
-        : REPLY_GUY_PROMPT_TELEGRAM;
+        : REPLY_GUY_PROMPT_CHAT_MODE;
 
     return context.knowledge
       ? replaceTemplateVariables(
@@ -180,10 +180,10 @@ export const handleBannedAndLengthRetries = async (
 export const generateReply = async (
   inputTweet: string,
   character: Character,
-  isTelegram: boolean = false,
+  isChatMode: boolean = false,
 ) => {
   try {
-    if (isTelegram) {
+    if (isChatMode) {
       forceCharacterToReplyOneLiners(character);
     }
 
@@ -204,15 +204,15 @@ export const generateReply = async (
       telegramRules: character.postingBehavior.telegramRules?.join("\n") || "",
     };
 
-    const prompt = generatePrompt(context, isTelegram, inputTweet.length);
+    const prompt = generatePrompt(context, isChatMode, inputTweet.length);
     let reply = await generateCompletionForCharacter(
       prompt,
       character,
-      isTelegram,
+      isChatMode,
     );
 
     // Add ban/length handling
-    if (!isTelegram) {
+    if (!isChatMode) {
       reply = await handleBannedAndLengthRetries(
         prompt,
         reply,
@@ -222,7 +222,7 @@ export const generateReply = async (
       );
     }
 
-    if (!isTelegram) {
+    if (!isChatMode) {
       reply = await checkAndReverseFud(reply, context, inputTweet, character);
     }
 
