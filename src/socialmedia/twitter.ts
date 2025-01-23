@@ -35,6 +35,7 @@ export class TwitterProvider {
     await this.scraper.login(
       this.character.twitterUserName,
       this.character.twitterPassword,
+      this.character.twitterEmail ? this.character.twitterEmail : undefined
     );
     const cookies = await this.scraper.getCookies();
     fs.writeFileSync(

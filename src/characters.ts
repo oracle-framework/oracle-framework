@@ -34,6 +34,7 @@ export type Character = {
   agentName: string;
   twitterUserName: string; // keep it all lowercase
   twitterPassword: string;
+  twitterEmail?: string;
   telegramApiKey: string;
   bio: string[];
   lore: string[];
@@ -68,6 +69,8 @@ function loadCharacterConfigs(): Character[] {
       ...config,
       twitterPassword:
         process.env[`AGENT_${internalName}_TWITTER_PASSWORD`] || "",
+      twitterEmail:
+        process.env[`AGENT_${internalName}_TWITTER_EMAIL`] || "",
       telegramApiKey:
         process.env[`AGENT_${internalName}_TELEGRAM_API_KEY`] || "",
       imageGenerationBehavior:
