@@ -1,49 +1,47 @@
 import { Character } from "../characters";
-// import { generateReply } from "../completions";
+import { generateReply } from "../completions";
 import { logger } from "../logger";
+import * as readline from 'readline';
 
 export class CliProvider {
   private character: Character;
+  private rl: readline.Interface;
 
   constructor(character: Character) {
     this.character = character;
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
   }
 
-  // private async handleReply(ctx: any) {
-  //   logger.info(
-  //     `***CALLING CLI reply for ${ctx.from?.username} at ${new Date().toLocaleString()}***`,
-  //   );
-  //   try {
-  //     let cliMessageToReplyTo = '';
-  //
-  //     const completion = await generateReply(
-  //       cliMessageToReplyTo,
-  //       this.character,
-  //     );
-  //
-  //     console.log(completion.reply);
-  //   } catch (e: any) {
-  //     logger.error(`There was an error: ${e}`);
-  //     logger.error("e.message", e.message);
-  //   }
-  // }
+  private async handleUserInput(input: string) {
+    try {
+      const completion = await generateReply(
+        input,
+        this.character,
+        true
+      );
 
+      console.log(`\n${this.character.internalName}: ${completion.reply}\n`);
+    } catch (e: any) {
+      logger.error(`There was an error: ${e}`);
+      logger.error("e.message", e.message);
+    }
+  }
 
-  // private async handlePromptGen(ctx: any) {
-  //   let telegramMessageToReplyTo = ctx.msg.text;
-  //   if (!telegramMessageToReplyTo) {
-  //     logger.error("No message text found");
-  //     return;
-  //   }
-  //   const completion = await generateReply(
-  //     telegramMessageToReplyTo.replace("promptgen", ""),
-  //     this.character,
-  //     false,
-  //   );
-  //   await ctx.reply(completion.reply);
-  // }
 
   public start() {
     logger.info(`CLI provider started for ${this.character.internalName}`);
+    console.log(`Starting chat with ${this.character.internalName}. Type your messages and press Enter. (Ctrl+C to quit)\n`);
+
+    this.rl.on('line', async (input) => {
+      await this.handleUserInput(input);
+    });
+
+    this.rl.on('close', () => {
+      console.log('\nGoodbye!');
+      process.exit(0);
+    });
   }
 }
