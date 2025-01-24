@@ -1,4 +1,4 @@
-import { Character } from "../../characters";
+import { Character } from "../../characters/characters";
 import { logger } from "../../logger";
 import { ImageProvider, MS2ApiResponse } from "../types";
 

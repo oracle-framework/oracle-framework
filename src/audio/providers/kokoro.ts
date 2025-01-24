@@ -1,4 +1,4 @@
-import { Character } from "../../characters";
+import { Character } from "../../characters/characters";
 import { AudioProvider, AudioResponse, KokoroAudioConfig } from "../types";
 import { logger } from "../../logger";
 

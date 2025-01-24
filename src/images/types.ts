@@ -1,4 +1,4 @@
-import { Character } from "../characters";
+import { Character } from "../characters/characters";
 
 export interface ImageProvider {
   generateImage(prompt: string, character: Character): Promise<Buffer>;

@@ -4,7 +4,7 @@ import { Command } from "commander";
 // Load environment variables at startup
 dotenv.config();
 
-import { CHARACTER, Character } from "./characters";
+import { CHARACTER, Character } from "./characters/characters";
 import { logger } from "./logger";
 import { CliProvider } from "./socialmedia/cli";
 import { DiscordProvider } from "./socialmedia/discord";

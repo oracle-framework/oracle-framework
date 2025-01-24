@@ -1,6 +1,6 @@
 import * as readline from "readline";
 
-import { Character } from "../characters";
+import { Character } from "../characters/characters";
 import { generateReply } from "../completions";
 import { logger } from "../logger";
 

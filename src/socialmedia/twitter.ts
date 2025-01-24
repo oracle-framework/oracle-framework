@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { Scraper, SearchMode } from "goat-x";
 
-import { Character } from "../characters";
+import { Character } from "../characters/characters";
 import {
   generateImagePromptForCharacter,
   generateReply,

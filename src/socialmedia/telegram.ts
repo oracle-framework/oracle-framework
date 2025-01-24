@@ -1,6 +1,6 @@
 import { Bot, InputFile } from "grammy";
 
-import { Character } from "../characters";
+import { Character } from "../characters/characters";
 import { generateReply } from "../completions";
 import { generateAudio } from "../audio";
 import { logger } from "../logger";

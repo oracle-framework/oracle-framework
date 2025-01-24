@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-import { Character } from "./characters";
+import { Character } from "./characters/characters";
 import { logger } from "./logger";
 import {
   IMAGE_GENERATION_PROMPT_MS2,

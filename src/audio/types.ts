@@ -1,4 +1,4 @@
-import { Character } from "../characters";
+import { Character } from "../characters/characters";
 
 export interface AudioProvider {
   generateAudio(text: string, character: Character): Promise<Response>;

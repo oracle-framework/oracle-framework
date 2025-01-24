@@ -1,7 +1,7 @@
 import path from "path";
 
-import { ImageProviderType, MS2Config } from "./images/types";
-import { AudioProviderType, OpenAIAudioConfig, KokoroAudioConfig } from "./audio/types";
+import { ImageProviderType, MS2Config } from "../images/types";
+import { AudioProviderType, OpenAIAudioConfig, KokoroAudioConfig } from "../audio/types";
 
 export type CharacterPostingBehavior = {
   replyInterval?: number; // if set, post a reply every <replyInterval> seconds instead of REPLY_INTERVAL
