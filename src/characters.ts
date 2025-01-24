@@ -65,6 +65,7 @@ function loadCharacterConfig(): Character {
     twitterPassword: process.env['AGENT_TWITTER_PASSWORD'] || "",
     twitterEmail: process.env['AGENT_TWITTER_EMAIL'] || "",
     telegramApiKey: process.env['AGENT_TELEGRAM_API_KEY'] || "",
+    discordApiKey: process.env['AGENT_DISCORD_API_KEY'] || "",
     imageGenerationBehavior:
       config.imageGenerationBehavior?.provider === "ms2"
         ? {

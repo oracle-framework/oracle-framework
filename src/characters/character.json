@@ -98,6 +98,7 @@
     "cute"
   ],
   "telegramBotUsername": "CEO_CarolAIneBot",
+  "discordBotUsername": "1332126365134225441",
   "postingBehavior": {
     "replyInterval": 2700000,
     "topicInterval": 10800000,

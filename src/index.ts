@@ -20,8 +20,20 @@ program
   .description("CLI to manage social media agents")
   .version("0.0.1");
 
-// We only have one character now
 const username = CHARACTER.username;
+
+program
+  .command("generateCookies")
+  .description("Generate Twitter cookies for an agent")
+  .argument("<username>", "Username of the agent")
+  .action(async providedName => {
+    if (providedName !== username) {
+      logger.error(`No agent found for ${providedName}`);
+      process.exit(1);
+    }
+    const twitterProvider = new TwitterProvider(CHARACTER);
+    await twitterProvider.login();
+  });
 
 program
   .command("telegram")
