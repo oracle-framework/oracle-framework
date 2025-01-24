@@ -30,8 +30,7 @@ program
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${username}`);
-      process.exit(1);
+      throw new Error(`Character not found: ${username}`);
     }
     const twitterProvider = new TwitterProvider(character);
     await twitterProvider.login();
@@ -49,8 +48,7 @@ program
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${username}`);
-      process.exit(1);
+      throw new Error(`Character not found: ${username}`);
     }
     const telegramProvider = new TelegramProvider(character);
     await telegramProvider.start();
@@ -68,8 +66,7 @@ program
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${username}`);
-      process.exit(1);
+      throw new Error(`Character not found: ${username}`);
     }
     // const telegramProvider = new TelegramProvider(character);
     // telegramProvider.start();
@@ -84,8 +81,7 @@ program
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${username}`);
-      process.exit(1);
+      throw new Error(`Character not found: ${username}`);
     }
     const discordProvider = new DiscordProvider(character);
     await discordProvider.start();
@@ -98,8 +94,7 @@ program
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${username}`);
-      process.exit(1);
+      throw new Error(`Character not found: ${username}`);
     }
     const twitterProvider = new TwitterProvider(character);
     await twitterProvider.initWithCookies();
@@ -127,8 +122,7 @@ program
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${username}`);
-      process.exit(1);
+      throw new Error(`Character not found: ${username}`);
     }
     const twitterProvider = new TwitterProvider(character);
     await twitterProvider.initWithCookies();
