@@ -6,7 +6,6 @@ import * as commander from "commander";
 dotenv.config();
 
 import { CHARACTERS } from "./characters/index";
-import { logger } from "./logger";
 import { CliProvider } from "./socialmedia/cli";
 import { DiscordProvider } from "./socialmedia/discord";
 import { TelegramProvider } from "./socialmedia/telegram";
