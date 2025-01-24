@@ -65,8 +65,6 @@ program
     if (!character) {
       throw new Error(`Character not found: ${username}`);
     }
-    // const telegramProvider = new TelegramProvider(character);
-    // telegramProvider.start();
     const cliProvider = new CliProvider(character);
     cliProvider.start();
   });

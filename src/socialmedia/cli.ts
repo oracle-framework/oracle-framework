@@ -29,7 +29,7 @@ export class CliProvider {
 
   public start() {
     logger.info(`CLI provider started for ${this.character.username}`);
-    console.log(
+    logger.info(
       `Starting chat with ${this.character.username}. Type your messages and press Enter. (Ctrl+C to quit)\n`,
     );
 
