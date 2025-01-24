@@ -21,7 +21,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp src/characters/characters.json dist/characters/",
     "format": "prettier --write \"src/**/*.{js,ts,tsx,json}\"",
     "watch": "tsc -w"
   }
