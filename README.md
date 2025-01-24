@@ -217,7 +217,7 @@ AGENT_MS2_API_KEY=
 
 Important note for OpenAI:
 
-If you are using OpenAI as your LLM provider you will not be able to use Llama as a fallback or on the chat mode, so please configure your character file accordingly. 
+If you are using OpenAI as your LLM provider you will not be able to use Claude 3.5 Sonnet as your primary model or Llama as a fallback or on the chat mode, so please configure your character file accordingly.
 
 ### Model Selection
 
