@@ -32,26 +32,26 @@ cp .env.example .env
 
 4. Create your agent:
 
-- Copy and modify `src/characters/carolaine.json` with your agent's personality
+- Copy and modify `src/characters/characters.json` with your agent's personality. You can have more than one agent in the file but that is advanced usage.
 
 5. Run:
 
 ```bash
 # Generate Twitter authentication
-npm run dev -- generateCookies <agent_name>
+npm run dev -- generateCookies <username>
 # or with yarn
-yarn dev generateCookies <agent_name>
+yarn dev generateCookies <username>
 
 # Start the agent's actions on Twitter
-npm run dev -- autoResponder <agent_name>     # Reply to timeline
-npm run dev -- topicPoster <agent_name>       # Post new topics
-npm run dev -- replyToMentions <agent_name>   # Handle mentions
+npm run dev -- autoResponder <username>     # Reply to timeline
+npm run dev -- topicPost <username>         # Post new topics
+npm run dev -- replyToMentions <username>   # Handle mentions
 
 # Start the agent's actions on Telegram
-npm run dev -- listenToTelegram <agent_name>
+npm run dev telegram <username>
 
 # Start the agent's actions on Discord
-npm run dev -- listenToDiscord <agent_name>
+npm run dev discord <username>
 ```
 
 ## Development
@@ -91,9 +91,8 @@ Create a new JSON file in `src/characters/` with the following structure:
 
 ```json
 {
-  "internalName": "your_agent_name",
   "agentName": "Display Name",
-  "twitterUserName": "handle",
+  "username": "handle",
   "bio": ["Multiple bio options"],
   "lore": ["Background stories and history", "Helps establish character depth"],
   "postDirections": [
@@ -119,9 +118,8 @@ Create a new JSON file in `src/characters/` with the following structure:
 
 #### Key Configuration Fields:
 
-- **internalName**: Used in commands and logs (lowercase, no spaces)
 - **agentName**: Display name shown on social platforms
-- **twitterUserName**: Twitter handle without '@'
+- **username**: Twitter handle without '@'
 - **bio**: The agent's bio
 - **lore**: Background stories that shape the character's history
 - **postDirections**: Guidelines for how the agent should post
@@ -160,19 +158,17 @@ LLM_PROVIDER_URL=
 LLM_API_KEY=
 
 # Twitter configuration (if using Twitter)
-AGENT_$AGENT_NAME_TWITTER_PASSWORD=
+AGENT_TWITTER_PASSWORD=
 
 # Telegram configuration (if using Telegram)
-AGENT_$AGENT_NAME_TELEGRAM_API_KEY=
+AGENT_TELEGRAM_API_KEY=
 
 # Discord configuration (if using Discord)
-AGENT_$AGENT_NAME_DISCORD_API_KEY=
+AGENT_DISCORD_API_KEY=
 
 # MS2 configuration (if using MS2 for image generation)
-AGENT_$AGENT_NAME_MS2_API_KEY=
+AGENT_MS2_API_KEY=
 ```
-
-Replace `$AGENT_NAME` with your agent's internal name in uppercase (e.g., CAROLAINE).
 
 ## Commands
 
@@ -180,12 +176,12 @@ Replace `$AGENT_NAME` with your agent's internal name in uppercase (e.g., CAROLA
 
 - `generateCookies`: Create Twitter authentication cookies
 - `autoResponder`: Start the timeline response system
-- `topicPoster`: Begin posting original content
+- `topicPost`: Begin posting original content
 - `replyToMentions`: Handle mentions and replies
 
 ### Telegram
 
-- `listenToTelegram`: Start the Telegram bot
+- `telegram`: Start the Telegram bot
 
 Important:
 
@@ -193,7 +189,7 @@ Important:
 
 ### Discord
 
-- `listenToDiscord`: Start the Discord bot
+- `discord`: Start the Discord bot
 
 Important:
 

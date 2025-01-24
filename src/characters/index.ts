@@ -1,8 +1,12 @@
 import fs from "fs";
 import path from "path";
 
-import { ImageProviderType, MS2Config } from "./images/types";
-import { AudioProviderType, OpenAIAudioConfig, KokoroAudioConfig } from "./audio/types";
+import { ImageProviderType, MS2Config } from "../images/types";
+import {
+  AudioProviderType,
+  OpenAIAudioConfig,
+  KokoroAudioConfig,
+} from "../audio/types";
 
 export type CharacterPostingBehavior = {
   replyInterval?: number; // if set, post a reply every <replyInterval> seconds instead of REPLY_INTERVAL
@@ -35,7 +39,7 @@ export type AudioGenerationBehavior = {
 
 export type Character = {
   agentName: string;
-  twitterUserName: string; // keep it all lowercase
+  username: string; // keep it all lowercase
   twitterPassword: string;
   twitterEmail?: string;
   telegramApiKey: string;
@@ -48,7 +52,6 @@ export type Character = {
   telegramBotUsername?: string; // not the tag but the username of the bot
   discordBotUsername?: string; // not the tag but the username of the bot
   discordApiKey?: string; // the api key for the bot
-  internalName: string; // internal name for the character
   postingBehavior: CharacterPostingBehavior;
   model: string;
   fallbackModel: string;
@@ -58,45 +61,46 @@ export type Character = {
 };
 
 function loadCharacterConfigs(): Character[] {
-  const charactersDir = path.join(__dirname, "characters");
-  const characterFiles = fs
-    .readdirSync(charactersDir)
-    .filter(file => file.endsWith(".json"));
+  const characterFile = fs.readFileSync(
+    path.join(__dirname, "characters.json"),
+    "utf8",
+  );
+  const configs = JSON.parse(characterFile);
 
-  return characterFiles.map(file => {
-    const config = require(path.join(charactersDir, file));
-    const internalName = config.internalName.toUpperCase();
+  // Ensure configs is an array
+  if (!Array.isArray(configs)) {
+    throw new Error("characters.json must contain an array of character configurations");
+  }
 
-    // Add environment variables
-    return {
-      ...config,
-      twitterPassword:
-        process.env[`AGENT_${internalName}_TWITTER_PASSWORD`] || "",
-      twitterEmail: process.env[`AGENT_${internalName}_TWITTER_EMAIL`] || "",
-      telegramApiKey:
-        process.env[`AGENT_${internalName}_TELEGRAM_API_KEY`] || "",
-      imageGenerationBehavior:
-        config.imageGenerationBehavior?.provider === "ms2"
-          ? {
-              ...config.imageGenerationBehavior,
-              ms2: {
-                ...config.imageGenerationBehavior.ms2,
-                apiKey: process.env[`AGENT_${internalName}_MS2_API_KEY`] || "",
-              },
-            }
-          : config.imageGenerationBehavior,
-      audioGenerationBehavior:
-        config.audioGenerationBehavior?.provider === "openai"
-          ? {
-              ...config.audioGenerationBehavior,
-              openai: {
-                ...config.audioGenerationBehavior.openai,
-                apiKey: process.env[`AGENT_${internalName}_OPENAI_API_KEY`] || "",
-              },
-            }
-          : config.audioGenerationBehavior,
-    };
-  });
+  // Add environment variables to each character config
+  return configs.map(config => ({
+    ...config,
+    twitterPassword: process.env[`AGENT_TWITTER_PASSWORD`] || "",
+    twitterEmail: process.env[`AGENT_TWITTER_EMAIL`] || "",
+    telegramApiKey: process.env[`AGENT_TELEGRAM_API_KEY`] || "",
+    discordApiKey: process.env[`AGENT_DISCORD_API_KEY`] || "",
+    discordBotUsername: config.discordBotUsername,
+    imageGenerationBehavior:
+      config.imageGenerationBehavior?.provider === "ms2"
+        ? {
+            ...config.imageGenerationBehavior,
+            ms2: {
+              ...config.imageGenerationBehavior.ms2,
+              apiKey: process.env[`AGENT_MS2_API_KEY`] || "",
+            },
+          }
+        : config.imageGenerationBehavior,
+    audioGenerationBehavior:
+      config.audioGenerationBehavior?.provider === "openai"
+        ? {
+            ...config.audioGenerationBehavior,
+            openai: {
+              ...config.audioGenerationBehavior.openai,
+              apiKey: process.env[`AGENT_OPENAI_API_KEY`] || "",
+            },
+          }
+        : config.audioGenerationBehavior,
+  }));
 }
 
 // Load all characters

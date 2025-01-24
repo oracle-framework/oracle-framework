@@ -33,23 +33,23 @@ export class TwitterProvider {
 
   public async login() {
     await this.scraper.login(
-      this.character.twitterUserName,
+      this.character.username,
       this.character.twitterPassword,
       this.character.twitterEmail ? this.character.twitterEmail : undefined,
     );
     const cookies = await this.scraper.getCookies();
     fs.writeFileSync(
-      `cookies/cookies_${this.character.twitterUserName}.json`,
+      `cookies/cookies_${this.character.username}.json`,
       JSON.stringify(cookies, null, 2),
     );
     logger.info(
-      `Successfully wrote cookies for ${this.character.twitterUserName}`,
+      `Successfully wrote cookies for ${this.character.username}`,
     );
   }
 
   public async initWithCookies() {
     const cookiesText = fs.readFileSync(
-      `./cookies/cookies_${this.character.twitterUserName}.json`,
+      `./cookies/cookies_${this.character.username}.json`,
       "utf8",
     );
     const cookiesArray = JSON.parse(cookiesText);
@@ -80,7 +80,7 @@ export class TwitterProvider {
   }
 
   public async findMentions(mentionsLimit: number) {
-    const query = `@${this.character.twitterUserName} -from:${this.character.twitterUserName} -filter:retweets ${this.character.postingBehavior.shouldIgnoreTwitterReplies ? "-filter:replies" : ""}`;
+    const query = `@${this.character.username} -from:${this.character.username} -filter:retweets ${this.character.postingBehavior.shouldIgnoreTwitterReplies ? "-filter:replies" : ""}`;
     const mentions = await this.scraper.searchTweets(
       query,
       mentionsLimit,
@@ -119,7 +119,7 @@ export class TwitterProvider {
       responseJson.data.create_tweet.tweet_results.result.rest_id;
     logger.info(`The reply tweet was sent: ${newTweetId}`);
 
-    insertTweet(this.character.twitterUserName, {
+    insertTweet(this.character.username, {
       input_tweet_id: "",
       input_tweet_created_at: "",
       input_tweet_text: "",
@@ -133,7 +133,7 @@ export class TwitterProvider {
 
   private async writeTopicPost() {
     logger.info(
-      `***CALLING writeTopicPost for ${this.character.internalName} at ${new Date().toLocaleString()}***`,
+      `***CALLING writeTopicPost for ${this.character.username} at ${new Date().toLocaleString()}***`,
     );
 
     try {
@@ -232,7 +232,7 @@ export class TwitterProvider {
 
   private async replyGuy() {
     logger.info(
-      `***CALLING replyGuy for ${this.character.internalName} at ${new Date().toLocaleString()}***`,
+      `***CALLING replyGuy for ${this.character.username} at ${new Date().toLocaleString()}***`,
     );
 
     try {
@@ -378,7 +378,7 @@ export class TwitterProvider {
   }
 
   private async saveMentionToDb(mention: Mention, completion: any) {
-    insertTweet(this.character.twitterUserName, {
+    insertTweet(this.character.username, {
       input_tweet_id: mention.id,
       input_tweet_created_at: mention.created_at.toISOString(),
       input_tweet_text: mention.text,
@@ -406,7 +406,7 @@ export class TwitterProvider {
       responseJson.data.create_tweet.tweet_results.result.rest_id;
     logger.info(`The reply tweet was sent: ${newTweetId}`);
 
-    insertTweet(this.character.twitterUserName, {
+    insertTweet(this.character.username, {
       input_tweet_id: originalTweet.id,
       input_tweet_created_at: originalTweet.created_at.toISOString(),
       input_tweet_text: originalTweet.text,

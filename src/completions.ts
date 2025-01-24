@@ -22,7 +22,7 @@ const MAX_OUTPUT_TOKENS = 70;
 
 interface PromptContext extends Record<string, string> {
   agentName: string;
-  twitterUserName: string;
+  username: string;
   bio: string;
   lore: string;
   postDirections: string;
@@ -71,14 +71,13 @@ export async function generateImagePromptForCharacter(
   switch (character.imageGenerationBehavior?.provider) {
     case "ms2":
       imagePrompt = replaceTemplateVariables(IMAGE_GENERATION_PROMPT_MS2, {
-        internalName: character.internalName,
         agentName: character.agentName,
-        twitterUserName: character.twitterUserName,
         bio: character.bio.join("\n"),
         lore: character.lore.join("\n"),
         postDirections: character.postDirections.join("\n"),
         knowledge: character.knowledge || "",
         originalPost: prompt,
+        username: character.username,
       });
       break;
     default:
@@ -189,7 +188,7 @@ export const generateReply = async (
 
     const context = {
       agentName: character.agentName,
-      twitterUserName: character.twitterUserName,
+      username: character.username,
       bio: character.bio
         .sort(() => Math.random() - 0.5)
         .slice(0, 3)
@@ -243,7 +242,7 @@ export const generateTopicPost = async (character: Character) => {
     .slice(0, 1)[0];
   const context = {
     agentName: character.agentName,
-    twitterUserName: character.twitterUserName,
+    username: character.username,
     bio: character.bio
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
@@ -264,7 +263,7 @@ export const generateTopicPost = async (character: Character) => {
   reply = await handleBannedAndLengthRetries(prompt, reply, character, 280, 3);
   reply = reply.replace(/\\n/g, "\n");
 
-  const topicPostLog = `<b>${character.twitterUserName}, topic: ${topic}, adjective: ${adjective}</b>:\n\n${reply}`;
+  const topicPostLog = `<b>${character.username}, topic: ${topic}, adjective: ${adjective}</b>:\n\n${reply}`;
   logger.info(topicPostLog);
   return { prompt, reply };
 };
@@ -272,7 +271,7 @@ export const generateTopicPost = async (character: Character) => {
 const checkIfPromptWasBanned = async (reply: string, character: Character) => {
   const context = {
     agentName: character.agentName,
-    twitterUserName: character.twitterUserName,
+    username: character.username,
     reply,
   };
   const banCheckPrompt = replaceTemplateVariables(WAS_PROMPT_BANNED, context);
@@ -318,7 +317,7 @@ const checkAndReverseFud = async (
 ) => {
   const fudContext = {
     agentName: context.agentName,
-    twitterUserName: context.twitterUserName,
+    username: context.username,
     originalPost: inputTweet,
     reply,
   };

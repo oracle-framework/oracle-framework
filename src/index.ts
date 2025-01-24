@@ -5,7 +5,7 @@ import * as commander from "commander";
 // Load environment variables at startup
 dotenv.config();
 
-import { CHARACTERS } from "./characters";
+import { CHARACTERS } from "./characters/index";
 import { logger } from "./logger";
 import { CliProvider } from "./socialmedia/cli";
 import { DiscordProvider } from "./socialmedia/discord";
@@ -21,16 +21,16 @@ program
   .description("CLI to manage social media agents")
   .version("0.0.1");
 
-const characterNames = CHARACTERS.map(c => c.internalName);
+const characterNames = CHARACTERS.map(c => c.username);
 
 program
   .command("generateCookies")
   .description("Generate Twitter cookies for an agent")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
+  .argument("<username>", "Username of the agent")
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${internalName}`);
+      logger.error(`No agent found for ${username}`);
       process.exit(1);
     }
     const twitterProvider = new TwitterProvider(character);
@@ -38,22 +38,22 @@ program
   });
 
 program
-  .command("listenToTelegram")
+  .command("telegram")
   .description("Start Telegram bot for an agent")
   .addArgument(
     new commander.Argument(
-      "<internalName>",
-      "Internal name of the agent",
+      "<username>",
+      "Username of the agent",
     ).choices(characterNames),
   )
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${internalName}`);
+      logger.error(`No agent found for ${username}`);
       process.exit(1);
     }
     const telegramProvider = new TelegramProvider(character);
-    telegramProvider.start();
+    await telegramProvider.start();
   });
 
 program
@@ -61,14 +61,14 @@ program
   .description("Start CLI interface for an agent")
   .addArgument(
     new commander.Argument(
-      "<internalName>",
-      "Internal name of the agent",
+      "<username>",
+      "Username of the agent",
     ).choices(characterNames),
   )
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${internalName}`);
+      logger.error(`No agent found for ${username}`);
       process.exit(1);
     }
     // const telegramProvider = new TelegramProvider(character);
@@ -78,13 +78,13 @@ program
   });
 
 program
-  .command("listenToDiscord")
+  .command("discord")
   .description("Start Discord bot for an agent")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
+  .argument("<username>", "Username of the agent")
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${internalName}`);
+      logger.error(`No agent found for ${username}`);
       process.exit(1);
     }
     const discordProvider = new DiscordProvider(character);
@@ -94,11 +94,11 @@ program
 program
   .command("autoResponder")
   .description("Start auto-responder for Twitter")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
+  .argument("<username>", "Username of the agent")
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${internalName}`);
+      logger.error(`No agent found for ${username}`);
       process.exit(1);
     }
     const twitterProvider = new TwitterProvider(character);
@@ -109,11 +109,11 @@ program
 program
   .command("topicPost")
   .description("Start topic posting for Twitter")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
+  .argument("<username>", "Username of the agent")
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      throw new Error(`Character not found: ${internalName}`);
+      throw new Error(`Character not found: ${username}`);
     }
     const twitterProvider = new TwitterProvider(character);
     await twitterProvider.initWithCookies();
@@ -123,11 +123,11 @@ program
 program
   .command("replyToMentions")
   .description("Start replying to Twitter mentions")
-  .argument("<internalName>", "Internal name of the agent")
-  .action(async internalName => {
-    const character = CHARACTERS.find(x => x.internalName === internalName);
+  .argument("<username>", "Username of the agent")
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
     if (!character) {
-      logger.error(`No agent found for ${internalName}`);
+      logger.error(`No agent found for ${username}`);
       process.exit(1);
     }
     const twitterProvider = new TwitterProvider(character);
