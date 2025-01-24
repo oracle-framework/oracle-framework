@@ -62,11 +62,6 @@ npm run build
 # or
 yarn build
 
-# Run in development mode
-npm run dev
-# or
-yarn dev
-
 # Format code
 npm run format
 # or
