@@ -7,7 +7,7 @@ export interface AudioProvider {
 export interface OpenAIAudioConfig {
   apiKey: string;
   model?: string;
-  voice?: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer"; // OpenAI's supported voices
+  voice?: string; // OpenAI's supported voices: https://platform.openai.com/docs/guides/text-to-speech#voice-options
   speed?: number;
   baseUrl?: string; // Base URL for OpenAI API or compatible provider
 }

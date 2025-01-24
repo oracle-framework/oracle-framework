@@ -132,18 +132,14 @@
       }
     },
     "audioGenerationBehavior": {
-      "provider": "openai",
-      "openai": {
-        "model": "tts-1",
-        "voice": "nova",
+      "provider": "kokoro",
+      "kokoro": {
+        "voice": "af_sky",
         "speed": 1.0
       }
     },
     "model": "anthropic/claude-3.5-sonnet",
     "fallbackModel": "meta-llama/llama-3.3-70b-instruct",
-    "temperature": 0.75,
-    "voiceBehavior": {
-      "voice": "af_sky"
-    }
+    "temperature": 0.75
   }
 ]
