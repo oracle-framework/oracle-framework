@@ -42,9 +42,7 @@ export class TwitterProvider {
       `cookies/cookies_${this.character.username}.json`,
       JSON.stringify(cookies, null, 2),
     );
-    logger.info(
-      `Successfully wrote cookies for ${this.character.username}`,
-    );
+    logger.info(`Successfully wrote cookies for ${this.character.username}`);
   }
 
   public async initWithCookies() {

@@ -13,7 +13,8 @@ export async function generateAudio(
   text: string,
   character: Character,
 ): Promise<Response> {
-  const provider = providers[character.audioGenerationBehavior?.provider || "kokoro"];
+  const provider =
+    providers[character.audioGenerationBehavior?.provider || "kokoro"];
   if (!provider) {
     throw new Error(
       `Audio provider not found: ${character.audioGenerationBehavior?.provider}`,
@@ -25,4 +26,4 @@ export async function generateAudio(
     character.audioGenerationBehavior?.provider,
   );
   return await provider.generateAudio(text, character);
-} 
+}

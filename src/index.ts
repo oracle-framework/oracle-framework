@@ -39,10 +39,9 @@ program
   .command("telegram")
   .description("Start Telegram bot for an agent")
   .addArgument(
-    new commander.Argument(
-      "<username>",
-      "Username of the agent",
-    ).choices(characterNames),
+    new commander.Argument("<username>", "Username of the agent").choices(
+      characterNames,
+    ),
   )
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);
@@ -57,10 +56,9 @@ program
   .command("cli")
   .description("Start CLI interface for an agent")
   .addArgument(
-    new commander.Argument(
-      "<username>",
-      "Username of the agent",
-    ).choices(characterNames),
+    new commander.Argument("<username>", "Username of the agent").choices(
+      characterNames,
+    ),
   )
   .action(async username => {
     const character = CHARACTERS.find(x => x.username === username);

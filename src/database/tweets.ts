@@ -37,9 +37,7 @@ export const getTweetByInputTweetId = (id: string): Tweet | undefined => {
   return stmt.get(id) as Tweet | undefined;
 };
 
-export const getLastTweetByusername = (
-  username: string,
-): Tweet | undefined => {
+export const getLastTweetByusername = (username: string): Tweet | undefined => {
   const stmt = db.prepare(
     `SELECT * FROM tweets WHERE twitter_user_name = ? ORDER BY created_at DESC LIMIT 1`,
   );

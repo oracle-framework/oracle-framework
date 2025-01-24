@@ -5,8 +5,12 @@ import { logger } from "../../logger";
 export class OpenAIAudioProvider implements AudioProvider {
   private readonly DEFAULT_BASE_URL = "https://api.openai.com";
 
-  async generateAudio(text: string, character: Character): Promise<AudioResponse> {
-    const config = character.audioGenerationBehavior?.openai as OpenAIAudioConfig;
+  async generateAudio(
+    text: string,
+    character: Character,
+  ): Promise<AudioResponse> {
+    const config = character.audioGenerationBehavior
+      ?.openai as OpenAIAudioConfig;
     if (!config?.apiKey) {
       throw new Error("OpenAI API key not configured for this character");
     }
@@ -21,7 +25,7 @@ export class OpenAIAudioProvider implements AudioProvider {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify({
         model: config.model || "tts-1",
@@ -38,4 +42,4 @@ export class OpenAIAudioProvider implements AudioProvider {
 
     return response;
   }
-} 
+}

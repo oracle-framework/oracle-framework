@@ -13,8 +13,12 @@ interface SpeechRequest {
 export class KokoroAudioProvider implements AudioProvider {
   private readonly DEFAULT_BASE_URL = "http://localhost:8880";
 
-  async generateAudio(text: string, character: Character): Promise<AudioResponse> {
-    const config = character.audioGenerationBehavior?.kokoro as KokoroAudioConfig;
+  async generateAudio(
+    text: string,
+    character: Character,
+  ): Promise<AudioResponse> {
+    const config = character.audioGenerationBehavior
+      ?.kokoro as KokoroAudioConfig;
     if (!config?.voice) {
       throw new Error("Voice is not configured for Kokoro provider");
     }
@@ -44,4 +48,4 @@ export class KokoroAudioProvider implements AudioProvider {
 
     return response;
   }
-} 
+}

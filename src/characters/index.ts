@@ -69,7 +69,9 @@ function loadCharacterConfigs(): Character[] {
 
   // Ensure configs is an array
   if (!Array.isArray(configs)) {
-    throw new Error("characters.json must contain an array of character configurations");
+    throw new Error(
+      "characters.json must contain an array of character configurations",
+    );
   }
 
   // Add environment variables to each character config

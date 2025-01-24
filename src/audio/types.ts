@@ -21,4 +21,4 @@ export interface KokoroAudioConfig {
 
 export type AudioProviderType = "openai" | "kokoro"; // Add more providers as needed
 
-export type AudioResponse = Response; 
+export type AudioResponse = Response;

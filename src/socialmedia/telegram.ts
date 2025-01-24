@@ -11,9 +11,7 @@ export class TelegramProvider {
 
   constructor(character: Character) {
     if (!character.telegramApiKey) {
-      throw new Error(
-        `No Telegram API key found for ${character.username}`,
-      );
+      throw new Error(`No Telegram API key found for ${character.username}`);
     }
     this.character = character;
     this.bot = new Bot(character.telegramApiKey);
