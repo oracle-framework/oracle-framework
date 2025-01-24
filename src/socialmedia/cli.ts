@@ -20,7 +20,7 @@ export class CliProvider {
     try {
       const completion = await generateReply(input, this.character, true);
 
-      console.log(`\n${this.character.internalName}: ${completion.reply}\n`);
+      console.log(`\n${this.character.username}: ${completion.reply}\n`);
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
       logger.error("e.message", e.message);
@@ -28,9 +28,9 @@ export class CliProvider {
   }
 
   public start() {
-    logger.info(`CLI provider started for ${this.character.internalName}`);
+    logger.info(`CLI provider started for ${this.character.username}`);
     console.log(
-      `Starting chat with ${this.character.internalName}. Type your messages and press Enter. (Ctrl+C to quit)\n`,
+      `Starting chat with ${this.character.username}. Type your messages and press Enter. (Ctrl+C to quit)\n`,
     );
 
     this.rl.on("line", async input => {

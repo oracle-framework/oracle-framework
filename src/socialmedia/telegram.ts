@@ -12,7 +12,7 @@ export class TelegramProvider {
   constructor(character: Character) {
     if (!character.telegramApiKey) {
       throw new Error(
-        `No Telegram API key found for ${character.internalName}`,
+        `No Telegram API key found for ${character.username}`,
       );
     }
     this.character = character;
@@ -98,7 +98,7 @@ export class TelegramProvider {
       } else {
         logger.error(
           "No sticker files found for character",
-          this.character.internalName,
+          this.character.username,
         );
       }
     }
@@ -119,7 +119,7 @@ export class TelegramProvider {
   }
 
   public start() {
-    logger.info(`Telegram bot started for ${this.character.internalName}`);
+    logger.info(`Telegram bot started for ${this.character.username}`);
 
     this.bot.on("message", async ctx => {
       const chatId = ctx.chatId;

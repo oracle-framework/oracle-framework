@@ -1,7 +1,7 @@
 import { db } from "./index";
 import { Tweet } from "./types";
 
-export const insertTweet = (twitterUsername: string, tweet: Tweet): void => {
+export const insertTweet = (username: string, tweet: Tweet): void => {
   const stmt = db.prepare(`
     INSERT INTO tweets (
       twitter_user_name, 
@@ -19,7 +19,7 @@ export const insertTweet = (twitterUsername: string, tweet: Tweet): void => {
   `);
 
   stmt.run(
-    twitterUsername,
+    username,
     tweet.input_tweet_id,
     tweet.input_tweet_created_at,
     tweet.input_tweet_text,
@@ -37,11 +37,11 @@ export const getTweetByInputTweetId = (id: string): Tweet | undefined => {
   return stmt.get(id) as Tweet | undefined;
 };
 
-export const getLastTweetByTwitterUserName = (
-  twitterUsername: string,
+export const getLastTweetByusername = (
+  username: string,
 ): Tweet | undefined => {
   const stmt = db.prepare(
     `SELECT * FROM tweets WHERE twitter_user_name = ? ORDER BY created_at DESC LIMIT 1`,
   );
-  return stmt.get(twitterUsername) as Tweet | undefined;
+  return stmt.get(username) as Tweet | undefined;
 };

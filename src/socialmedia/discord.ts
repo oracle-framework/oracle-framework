@@ -10,11 +10,11 @@ export class DiscordProvider {
 
   constructor(character: Character) {
     if (!character.discordApiKey) {
-      throw new Error(`No Discord API key found for ${character.internalName}`);
+      throw new Error(`No Discord API key found for ${character.username}`);
     }
     if (!character.discordBotUsername) {
       throw new Error(
-        `No Discord bot username found for ${character.internalName}`,
+        `No Discord bot username found for ${character.username}`,
       );
     }
 
@@ -54,11 +54,11 @@ export class DiscordProvider {
     this.client.on("messageCreate", message => this.handleMessage(message));
 
     await this.client.login(this.character.discordApiKey);
-    logger.info(`Discord bot started for ${this.character.internalName}`);
+    logger.info(`Discord bot started for ${this.character.username}`);
   }
 
   public async stop() {
     await this.client.destroy();
-    logger.info(`Discord bot stopped for ${this.character.internalName}`);
+    logger.info(`Discord bot stopped for ${this.character.username}`);
   }
 }
