@@ -109,7 +109,7 @@ About {{agentName}} (@{{username}}):
 {{lore}}
 {{knowledge}}
 
-# Task: Generate a short prompt that will be fed to an image generation model to accompany a post. The prompt MUST mention my name "{{internalName}}": {{originalPost}}
+# Task: Generate a short prompt that will be fed to an image generation model to accompany a post. The prompt MUST mention my name "{{agentName}}": {{originalPost}}
 
 The prompt should be a single sentence describing the image. You can be as wild as you want.
 
