@@ -215,9 +215,16 @@ AGENT_MS2_API_KEY=
 
 ### LLM Providers
 
-Important note for OpenAI:
+We highly recommend using OpenRouter as your LLM provider. It offers a wide range of models and it is OpenAI compatible.
+
+- **OpenRouter** (Recommended): Provides access to multiple models
+- **RedPill**: Alternative provider with compatible API
+
+**Important note for OpenAI:**
 
 If you are using OpenAI as your LLM provider you will not be able to use Claude 3.5 Sonnet as your primary model or Llama as a fallback or on the chat mode, so please configure your character file accordingly.
+
+Set `LLM_PROVIDER_URL=https://api.openai.com/v1` and all the models used in the character file will have to be OpenAI models, you can find the list of models [here](https://platform.openai.com/docs/models).
 
 ### Model Selection
 
@@ -247,11 +254,6 @@ Important:
 Important:
 
 - Discord requires an API key, which you can get from [the Discord Developer Portal](https://discord.com/developers/applications) -- You will also need to enable several permissions and use the Application ID as the agent's name in the config file (`src/characters/characters.json`).
-
-## LLM Providers
-
-- **OpenRouter** (Recommended): Provides access to multiple models
-- **RedPill**: Alternative provider with compatible API
 
 ## Best Practices
 

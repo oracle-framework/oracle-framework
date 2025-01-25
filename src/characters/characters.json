@@ -109,7 +109,7 @@
         "if the message says: good night you reply gn",
         "if the message says: something about $AR you reply buy more"
       ],
-      "chatModeModel": "meta-llama/llama-3.3-70b-instruct",
+      "chatModeModel": "gpt-4o",
       "generateImagePrompt": true,
       "imagePromptChance": 0.33,
       "stickerChance": 0.2,
@@ -138,8 +138,8 @@
         "speed": 1.0
       }
     },
-    "model": "anthropic/claude-3.5-sonnet",
-    "fallbackModel": "meta-llama/llama-3.3-70b-instruct",
+    "model": "gpt-4o",
+    "fallbackModel": "gpt-4o",
     "temperature": 0.75
   }
 ]
