@@ -2,6 +2,8 @@
 
 The easiest way to create and manage AI-powered social media personas that can authentically engage with followers.
 
+[![Discord](https://img.shields.io/discord/1234567890?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/FsTXmwaG3g)
+
 ## Overview
 
 Oracle is a TypeScript framework that lets you quickly bootstrap social media personas powered by large language models. Each persona has its own personality, posting style, and interaction patterns.
