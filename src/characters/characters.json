@@ -135,7 +135,8 @@
       "provider": "kokoro",
       "kokoro": {
         "voice": "af_sky",
-        "speed": 1.0
+        "speed": 1.0,
+        "baseUrl": "https://api.kokorotts.com"
       }
     },
     "model": "anthropic/claude-3.5-sonnet",
