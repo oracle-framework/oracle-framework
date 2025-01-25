@@ -126,7 +126,7 @@ export class TelegramProvider {
       if (
         text?.includes(this.character.telegramBotUsername || "") ||
         ctx.message?.reply_to_message?.from?.username ===
-          this.character.telegramBotUsername
+          this.character.telegramBotUsername || ctx.chat.type === "private"
       ) {
         logger.info(`Bot was mentioned in chat ${chatId}: ${text}`);
         await this.handleReply(ctx);
