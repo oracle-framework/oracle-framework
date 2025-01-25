@@ -4,6 +4,8 @@ import { Character } from "../characters";
 import { generateReply } from "../completions";
 import { generateAudio } from "../audio";
 import { logger } from "../logger";
+import { saveChatMessage } from "../database/chat-history";
+import { addChatHistoryToPrompt } from "../utils/prompt-context";
 
 export class TelegramProvider {
   private bot: Bot;
@@ -32,6 +34,18 @@ export class TelegramProvider {
         return;
       }
 
+      // Save user's message
+      await saveChatMessage({
+        platform: "telegram",
+        platform_channel_id: ctx.chat.id.toString(),
+        platform_message_id: ctx.msg.message_id.toString(),
+        platform_user_id: ctx.from.id.toString(),
+        username: ctx.from.username,
+        message_content: telegramMessageToReplyTo,
+        message_type: "text",
+        is_bot_response: 0
+      });
+
       const isAudio = ctx.msg.text?.toLowerCase().includes("audio");
       let cleanedMessage = telegramMessageToReplyTo;
       if (isAudio && this.character.audioGenerationBehavior?.provider) {
@@ -40,8 +54,14 @@ export class TelegramProvider {
           .replace("audio", "");
       }
 
+      // Get prompt with chat history
+      const promptWithHistory = await addChatHistoryToPrompt(cleanedMessage, {
+        platform: "telegram",
+        chatId: ctx.chat.id.toString()
+      });
+
       const completion = await generateReply(
-        cleanedMessage,
+        promptWithHistory,
         this.character,
         true,
       );
@@ -55,29 +75,67 @@ export class TelegramProvider {
   }
 
   private async sendResponse(ctx: any, reply: string, isAudio: boolean) {
-    if (isAudio && this.character.audioGenerationBehavior?.provider) {
-      const audioCompletion = await generateAudio(reply, this.character);
-      if (audioCompletion) {
-        const audioBuffer = await audioCompletion.arrayBuffer();
-        const audioUint8Array = new Uint8Array(audioBuffer);
-        await ctx.api.sendVoice(
-          ctx.chatId,
-          new InputFile(audioUint8Array, "audio.ogg"),
-          {
+    try {
+      if (isAudio && this.character.audioGenerationBehavior?.provider) {
+        const audioCompletion = await generateAudio(reply, this.character);
+        if (audioCompletion) {
+          const audioBuffer = await audioCompletion.arrayBuffer();
+          const audioUint8Array = new Uint8Array(audioBuffer);
+          const sentMessage = await ctx.api.sendVoice(
+            ctx.chatId,
+            new InputFile(audioUint8Array, "audio.ogg"),
+            {
+              reply_parameters: { message_id: ctx.msg.message_id },
+            },
+          );
+
+          // Save audio message to history
+          await saveChatMessage({
+            platform: "telegram",
+            platform_channel_id: ctx.chat.id.toString(),
+            platform_message_id: sentMessage.message_id.toString(),
+            platform_user_id: this.bot.botInfo?.id.toString(),
+            username: this.character.username,
+            message_content: reply,
+            message_type: "voice",
+            metadata: {
+              duration: sentMessage.voice?.duration,
+              file_size: sentMessage.voice?.file_size
+            },
+            is_bot_response: 1
+          });
+        } else {
+          // Fallback to text response
+          const sentMessage = await ctx.reply(reply, {
             reply_parameters: { message_id: ctx.msg.message_id },
-          },
-        );
+          });
+
+          await this.saveTextResponse(ctx, sentMessage, reply);
+        }
       } else {
-        // If no audio was generated, fall back to text response
-        await ctx.reply(reply, {
+        const sentMessage = await ctx.reply(reply, {
           reply_parameters: { message_id: ctx.msg.message_id },
         });
+
+        await this.saveTextResponse(ctx, sentMessage, reply);
       }
-    } else {
-      await ctx.reply(reply, {
-        reply_parameters: { message_id: ctx.msg.message_id },
-      });
+    } catch (error) {
+      logger.error("Error sending response:", error);
+      throw error;
     }
+  }
+
+  private async saveTextResponse(ctx: any, sentMessage: any, reply: string) {
+    await saveChatMessage({
+      platform: "telegram",
+      platform_channel_id: ctx.chat.id.toString(),
+      platform_message_id: sentMessage.message_id.toString(),
+      platform_user_id: this.bot.botInfo?.id.toString(),
+      username: this.character.username,
+      message_content: reply,
+      message_type: "text",
+      is_bot_response: 1
+    });
   }
 
   private async maybeSendSticker(ctx: any) {
@@ -92,7 +150,25 @@ export class TelegramProvider {
                 this.character.postingBehavior.stickerFiles.length,
             )
           ];
-        await ctx.replyWithSticker(randomSticker);
+        
+        const sentSticker = await ctx.replyWithSticker(randomSticker);
+
+        // Save sticker to history
+        await saveChatMessage({
+          platform: "telegram",
+          platform_channel_id: ctx.chat.id.toString(),
+          platform_message_id: sentSticker.message_id.toString(),
+          platform_user_id: this.bot.botInfo?.id.toString(),
+          username: this.character.username,
+          message_content: randomSticker,
+          message_type: "sticker",
+          metadata: {
+            sticker_id: randomSticker,
+            set_name: sentSticker.sticker?.set_name,
+            emoji: sentSticker.sticker?.emoji
+          },
+          is_bot_response: 1
+        });
       } else {
         logger.error(
           "No sticker files found for character",
@@ -103,40 +179,24 @@ export class TelegramProvider {
   }
 
   private async handlePromptGen(ctx: any) {
-    let telegramMessageToReplyTo = ctx.msg.text;
-    if (!telegramMessageToReplyTo) {
-      logger.error("No message text found");
-      return;
+    try {
+      const completion = await generateReply(
+        ctx.msg.text,
+        this.character,
+        false,
+      );
+      await ctx.reply(completion.reply);
+    } catch (e: any) {
+      logger.error(`There was an error: ${e}`);
+      logger.error("e.message", e.message);
     }
-    const completion = await generateReply(
-      telegramMessageToReplyTo.replace("promptgen", ""),
-      this.character,
-      false,
-    );
-    await ctx.reply(completion.reply);
   }
 
   public start() {
-    logger.info(`Telegram bot started for ${this.character.username}`);
+    logger.info(`Telegram provider started for ${this.character.username}`);
 
-    this.bot.on("message", async ctx => {
-      const chatId = ctx.chatId;
-      const text = ctx.msg.text;
-
-      if (
-        text?.includes(this.character.telegramBotUsername || "") ||
-        ctx.message?.reply_to_message?.from?.username ===
-          this.character.telegramBotUsername || ctx.chat.type === "private"
-      ) {
-        logger.info(`Bot was mentioned in chat ${chatId}: ${text}`);
-        await this.handleReply(ctx);
-      } else if (
-        ctx.from?.username == "teeasma" &&
-        text?.includes("promptgen")
-      ) {
-        await this.handlePromptGen(ctx);
-      }
-    });
+    this.bot.command("prompt", this.handlePromptGen.bind(this));
+    this.bot.on("message", this.handleReply.bind(this));
 
     this.bot.start();
   }
