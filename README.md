@@ -2,7 +2,7 @@
 
 The easiest way to create and manage AI-powered social media personas that can authentically engage with followers.
 
-[![Discord](https://img.shields.io/discord/1234567890?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/FsTXmwaG3g)
+[![Discord](https://img.shields.io/discord/1332521682224680984?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/FsTXmwaG3g)
 
 ## Overview
 
