@@ -28,7 +28,11 @@ cp .env.example .env
 
 3. Configure your `.env` file with:
 
-- LLM provider credentials (we recommend OpenRouter)
+- LLM provider credentials (we recommend OpenRouter), ie
+```
+LLM_PROVIDER_URL=https://openrouter.ai/api/v1
+LLM_PROVIDER_API_KEY=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
+```
 - Twitter account credentials (optional)
 - Telegram bot token (optional)
 - Discord bot token (optional)
@@ -42,7 +46,7 @@ Advanced usage: you can have more than one agent in the file and run more than o
 5. Run:
 
 ```bash
-# Talk to your agent on the command line
+# Talk to your agent on the command line, default username is "carolainetrades"
 npm run dev -- cli <username>
 # or with yarn
 yarn dev cli <username>
