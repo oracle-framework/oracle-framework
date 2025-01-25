@@ -32,7 +32,7 @@ export class TelegramProvider {
         return;
       }
 
-      const isAudio = ctx.msg.text?.toLowerCase().includes("audio");
+      const isAudio = ctx.msg.text?.toLowerCase().includes("!audio");
       let cleanedMessage = telegramMessageToReplyTo;
       if (isAudio && this.character.audioGenerationBehavior?.provider) {
         cleanedMessage = telegramMessageToReplyTo
