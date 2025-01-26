@@ -3,6 +3,8 @@ import { Client, GatewayIntentBits, Message } from "discord.js";
 import { Character } from "../characters";
 import { generateReply } from "../completions";
 import { logger } from "../logger";
+import { saveChatMessage } from "../database/chat-history";
+import { getChatHistory } from "../utils/prompt-context";
 
 export class DiscordProvider {
   private client: Client;
@@ -36,9 +38,45 @@ export class DiscordProvider {
     if (message.mentions.users.has(this.character.discordBotUsername)) {
       logger.info(`Bot was mentioned in channel ${message.channelId}: ${text}`);
       try {
-        const completion = await generateReply(text, this.character, true);
-        logger.info("LLM completion done.");
-        await message.reply(completion.reply);
+        // Save user's message
+        saveChatMessage({
+          platform: "discord",
+          platform_channel_id: message.channelId,
+          platform_message_id: message.id,
+          platform_user_id: message.author.id,
+          username: message.author.username,
+          message_content: text,
+          message_type: "text",
+          is_bot_response: 0
+        });
+
+        // Get chat history for this user in this channel
+        const chatHistory = getChatHistory({
+          platform: "discord",
+          channelId: message.channelId,
+          userId: message.author.id
+        });
+
+        // Generate reply with chat history context
+        const completion = await generateReply(text, this.character, true, chatHistory);
+        
+        logger.debug("LLM completion done.");
+
+        // Send the reply
+        const reply = await message.reply(completion.reply);
+
+        // Save bot's response
+        saveChatMessage({
+          platform: "discord",
+          platform_channel_id: message.channelId,
+          platform_message_id: reply.id,
+          platform_user_id: this.client.user?.id,
+          username: this.character.username,
+          message_content: completion.reply,
+          message_type: "text",
+          is_bot_response: 1,
+          prompt: completion.prompt
+        });
       } catch (e: any) {
         logger.error(`There was an error: ${e}`);
         logger.error("e.message", e.message);

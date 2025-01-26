@@ -5,7 +5,7 @@ import { generateReply } from "../completions";
 import { generateAudio } from "../audio";
 import { logger } from "../logger";
 import { saveChatMessage } from "../database/chat-history";
-import { addChatHistoryToPrompt } from "../utils/prompt-context";
+import { getChatHistory } from "../utils/prompt-context";
 
 export class TelegramProvider {
   private bot: Bot;
@@ -20,8 +20,8 @@ export class TelegramProvider {
   }
 
   private async handleReply(ctx: any) {
-    logger.info(
-      `***CALLING replyGuy for ${ctx.from?.username} at ${new Date().toLocaleString()}***`,
+    logger.debug(
+      `replying to ${ctx.from?.username} at ${new Date().toLocaleString()}`,
     );
     try {
       let telegramMessageToReplyTo = ctx.msg.text;
@@ -35,7 +35,7 @@ export class TelegramProvider {
       }
 
       // Save user's message
-      await saveChatMessage({
+      saveChatMessage({
         platform: "telegram",
         platform_channel_id: ctx.chat.id.toString(),
         platform_message_id: ctx.msg.message_id.toString(),
@@ -54,16 +54,17 @@ export class TelegramProvider {
           .replace("audio", "");
       }
 
-      // Get prompt with chat history
-      const promptWithHistory = await addChatHistoryToPrompt(cleanedMessage, {
+      const chatHistory = getChatHistory({
         platform: "telegram",
-        chatId: ctx.chat.id.toString()
+        chatId: ctx.chat.id.toString(),
+        userId: ctx.from.id.toString()
       });
 
       const completion = await generateReply(
-        promptWithHistory,
+        cleanedMessage,
         this.character,
         true,
+        chatHistory
       );
 
       await this.sendResponse(ctx, completion.reply, isAudio);

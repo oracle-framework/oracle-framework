@@ -50,6 +50,7 @@ interface GetMessagesOptions {
   channelId?: string;
   chatId?: string;
   sessionId?: string;
+  userId?: string;
   limit?: number;
 }
 
@@ -58,20 +59,37 @@ export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
                     options.platform === "discord" ? options.channelId :
                     options.sessionId;
 
-  const results = db
-    .prepare(
-      `SELECT * FROM chat_messages 
-       WHERE platform = ? AND 
-       (
-         CASE 
-           WHEN platform = 'cli' THEN session_id = ?
-           ELSE platform_channel_id = ?
-         END
-       )
-       ORDER BY created_at DESC 
-       LIMIT ?`
+  const query = `
+    SELECT * FROM chat_messages 
+    WHERE platform = ? AND 
+    (
+      CASE 
+        WHEN platform = 'cli' THEN session_id = ?
+        ELSE platform_channel_id = ?
+      END
     )
-    .all(options.platform, platformId, platformId, options.limit || 10) as any[];
+    AND (
+      -- Include messages from the specific user
+      ${options.userId ? 'platform_user_id = ?' : '1=1'}
+      OR 
+      -- Include bot responses in the same conversation thread
+      (is_bot_response = 1 AND EXISTS (
+        SELECT 1 FROM chat_messages user_msgs
+        WHERE user_msgs.platform = chat_messages.platform
+        AND user_msgs.platform_channel_id = chat_messages.platform_channel_id
+        AND user_msgs.platform_user_id = ?
+        AND user_msgs.is_bot_response = 0
+      ))
+    )
+    ORDER BY created_at DESC 
+    LIMIT ?
+  `;
+
+  const params = options.userId 
+    ? [options.platform, platformId, platformId, options.userId, options.userId, options.limit || 10]
+    : [options.platform, platformId, platformId, options.limit || 10];
+
+  const results = db.prepare(query).all(...params) as any[];
 
   // Parse metadata JSON for each message
   return results.map(msg => ({

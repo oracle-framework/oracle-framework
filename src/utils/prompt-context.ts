@@ -5,10 +5,11 @@ interface ContextOptions {
   channelId?: string;
   chatId?: string;
   sessionId?: string;
+  userId?: string;
   numMessages?: number;
 }
 
-export const addChatHistoryToPrompt = (prompt: string, options: ContextOptions): string => {
+export const getChatHistory = (options: ContextOptions): string => {
   // Validate required IDs based on platform
   switch (options.platform) {
     case "discord":
@@ -27,13 +28,11 @@ export const addChatHistoryToPrompt = (prompt: string, options: ContextOptions):
     channelId: options.channelId,
     chatId: options.chatId,
     sessionId: options.sessionId,
+    userId: options.userId,
     limit: options.numMessages
   });
 
   const chatHistory = formatChatHistoryForPrompt(messages);
   
-  return `${prompt}
-
-# Recent Conversation History:
-${chatHistory}`;
+  return chatHistory;
 };

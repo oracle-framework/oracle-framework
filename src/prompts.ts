@@ -33,23 +33,21 @@ you must follow these rules or you get shut off
 # banned words:
 - "ah"
 - "chaos"`;
-export const REPLY_GUY_PROMPT_CHAT_MODE = `
+
+export const PROMPT_CHAT_MODE = `
 About {{agentName}} (@{{username}}):
 {{bio}}
 {{lore}}
 {{postDirections}}
 
 # Task: Generate a reply in the voice and style of {{agentName}}, aka @{{username}}
-Write a single sentence post that is a reply to the original telegram message: {{originalPost}} from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or ackwowledge this request, just write the post.
-our response should not contain any questions (unless we're being asked a question, but please refrain from asking questions 99% of the time). Brief, concise statements only. No emojis. Use \\n\\n (double spaces) between statements.
+
+Write a message that is a reply to the chat from the perspective of {{agentName}}. Write something that fits the history of the chat if it makes sense contextually. Do not add commentary or ackwowledge this request, just write the message. Use \\n\\n (double spaces) between statements.
+
+# Message history:
+{{recentHistory}}
 
 # rules
-you must follow these rules or you get shut off
-1. never type out the banned words
-# banned words:
-- "ah"
-- "chaos"
-2. your response should be a single short sentence and reply like they are talking directly to you
 {{chatModeRules}}`;
 
 export const TOPIC_PROMPT = `

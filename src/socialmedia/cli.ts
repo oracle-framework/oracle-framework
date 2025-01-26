@@ -5,7 +5,7 @@ import { Character } from "../characters";
 import { generateReply } from "../completions";
 import { logger } from "../logger";
 import { saveChatMessage, MessageType } from "../database/chat-history";
-import { addChatHistoryToPrompt } from "../utils/prompt-context";
+import { getChatHistory } from "../utils/prompt-context";
 
 export class CliProvider {
   private character: Character;
@@ -33,13 +33,13 @@ export class CliProvider {
       });
 
       // Get prompt with chat history
-      const promptWithHistory = await addChatHistoryToPrompt(input, {
+      const chatHistory = getChatHistory({
         platform: "cli",
         sessionId: this.sessionId
       });
 
       // Generate reply with chat history context
-      const completion = await generateReply(promptWithHistory, this.character, true);
+      const completion = await generateReply(input, this.character, true, chatHistory);
 
       // Check if the response contains any special actions
       const hasSticker = completion.reply.includes("[STICKER]");
@@ -57,14 +57,14 @@ export class CliProvider {
       }
 
       // Save bot response
-      await saveChatMessage({
+      saveChatMessage({
         platform: "cli",
         session_id: this.sessionId,
         message_content: messageContent,
         message_type: messageType,
         metadata,
         is_bot_response: 1,
-        prompt: promptWithHistory
+        prompt: completion.prompt
       });
 
       // Display the response appropriately
