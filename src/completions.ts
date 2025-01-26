@@ -7,7 +7,7 @@ import {
   IS_REPLY_FUD_PROMPT,
   REPLY_GUY_PROMPT,
   REPLY_GUY_PROMPT_SHORT,
-  REPLY_GUY_PROMPT_CHAT_MODE,
+  PROMPT_CHAT_MODE,
   REVERSE_FUD_TO_SHILL_PROMPT,
   TOPIC_PROMPT,
   WAS_PROMPT_BANNED,
@@ -29,29 +29,25 @@ interface PromptContext extends Record<string, string> {
   originalPost: string;
   knowledge: string;
   chatModeRules: string;
+  recentHistory: string;
 }
 
 const generatePrompt = (
   context: PromptContext,
   isChatMode: boolean,
-  inputTweetLength: number,
+  inputLength: number,
 ) => {
   if (isChatMode) {
-    const basePrompt =
-      inputTweetLength <= 20
-        ? REPLY_GUY_PROMPT_SHORT
-        : REPLY_GUY_PROMPT_CHAT_MODE;
-
     return context.knowledge
       ? replaceTemplateVariables(
-          `# Knowledge\n{{knowledge}}\n\n${basePrompt}`,
+          `# Knowledge\n{{knowledge}}\n\n${PROMPT_CHAT_MODE}`,
           context,
         )
-      : replaceTemplateVariables(basePrompt, context);
+      : replaceTemplateVariables(PROMPT_CHAT_MODE, context);
   }
 
   const basePrompt =
-    inputTweetLength <= 20 ? REPLY_GUY_PROMPT_SHORT : REPLY_GUY_PROMPT;
+    inputLength <= 20 ? REPLY_GUY_PROMPT_SHORT : REPLY_GUY_PROMPT;
 
   return context.knowledge
     ? replaceTemplateVariables(
@@ -111,15 +107,20 @@ const generateCompletionForCharacter = async (
   prompt: string,
   character: Character,
   isChatMode: boolean = false,
+  userPrompt?: string,
 ) => {
   let model = character.model;
   if (isChatMode) {
     model = character.postingBehavior.chatModeModel || character.model;
   }
-  try {
+  // TODO: change this once we use userPrompt everywhere
+  if (userPrompt) {
     const completion = await openai.chat.completions.create({
       model: model,
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: userPrompt },
+      ],
       max_tokens: MAX_OUTPUT_TOKENS,
       temperature: character.temperature,
     });
@@ -129,10 +130,22 @@ const generateCompletionForCharacter = async (
     }
 
     return completion.choices[0].message.content;
-  } catch (error) {
-    logger.error("Error generating completion:", error);
-    throw error; // Re-throw to handle it in the calling function
   }
+
+  const completion = await openai.chat.completions.create({
+    model: model,
+    messages: [
+      { role: "user", content: prompt },
+    ],
+    max_tokens: MAX_OUTPUT_TOKENS,
+    temperature: character.temperature,
+  });
+
+  if (!completion.choices[0]?.message?.content) {
+    throw new Error("No completion content received from API");
+  }
+
+  return completion.choices[0].message.content;
 };
 
 export const handleBannedAndLengthRetries = async (
@@ -177,9 +190,10 @@ export const handleBannedAndLengthRetries = async (
 // if character.onlyKeepFirstSentence, then only keep first sentence
 // After generating a reply, determine if the reply is fudding a token. If so, shill the token instead.
 export const generateReply = async (
-  inputTweet: string,
+  inputMessage: string,
   character: Character,
   isChatMode: boolean = false,
+  recentHistory?: string,
 ) => {
   try {
     if (isChatMode) {
@@ -190,24 +204,29 @@ export const generateReply = async (
       agentName: character.agentName,
       username: character.username,
       bio: character.bio
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3)
+        //.sort(() => Math.random() - 0.5)
+        //.slice(0, 3)
         .join("\n"),
       lore: character.lore
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3)
+        //.sort(() => Math.random() - 0.5)
+        //.slice(0, 3)
         .join("\n"),
       postDirections: character.postDirections.join("\n"),
-      originalPost: inputTweet,
+      originalPost: inputMessage,
       knowledge: character.knowledge || "",
       chatModeRules: character.postingBehavior.chatModeRules?.join("\n") || "",
+      recentHistory: recentHistory || "",
     };
 
-    const prompt = generatePrompt(context, isChatMode, inputTweet.length);
+    logger.debug(`Context: ${JSON.stringify(context)}`);
+
+    const prompt = generatePrompt(context, isChatMode, inputMessage.length);
+
     let reply = await generateCompletionForCharacter(
       prompt,
       character,
       isChatMode,
+      inputMessage,
     );
 
     // Add ban/length handling
@@ -222,7 +241,7 @@ export const generateReply = async (
     }
 
     if (!isChatMode) {
-      reply = await checkAndReverseFud(reply, context, inputTweet, character);
+      reply = await checkAndReverseFud(reply, context, inputMessage, character);
     }
 
     reply = formatReply(reply, character);
@@ -290,9 +309,10 @@ const formatReply = (reply: string, character: Character) => {
   }
 
   if (character.postingBehavior.onlyKeepFirstSentence) {
-    logger.debug("Only keeping first sentence of: ", formattedReply);
     formattedReply = formattedReply.split("\n")[0];
   }
+
+  logger.debug(`Formatted reply: ${formattedReply}`);
 
   return formattedReply;
 };
