@@ -134,9 +134,7 @@ const generateCompletionForCharacter = async (
 
   const completion = await openai.chat.completions.create({
     model: model,
-    messages: [
-      { role: "user", content: prompt },
-    ],
+    messages: [{ role: "user", content: prompt }],
     max_tokens: MAX_OUTPUT_TOKENS,
     temperature: character.temperature,
   });

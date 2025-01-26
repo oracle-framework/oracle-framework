@@ -34,41 +34,48 @@ export class TelegramProvider {
         return;
       }
 
-      // Save user's message
-      saveChatMessage({
-        platform: "telegram",
-        platform_channel_id: ctx.chat.id.toString(),
-        platform_message_id: ctx.msg.message_id.toString(),
-        platform_user_id: ctx.from.id.toString(),
-        username: ctx.from.username,
-        message_content: telegramMessageToReplyTo,
-        message_type: "text",
-        is_bot_response: 0
-      });
+      if (
+        ctx.chat.type === "private" ||
+        ctx.msg.text?.includes(this.character.telegramBotUsername) ||
+        ctx.message?.reply_to_message?.from?.username ===
+          this.character.telegramBotUsername
+      ) {
+        // Save user's message
+        saveChatMessage({
+          platform: "telegram",
+          platform_channel_id: ctx.chat.id.toString(),
+          platform_message_id: ctx.msg.message_id.toString(),
+          platform_user_id: ctx.from.id.toString(),
+          username: ctx.from.username,
+          message_content: telegramMessageToReplyTo,
+          message_type: "text",
+          is_bot_response: 0,
+        });
 
-      const isAudio = ctx.msg.text?.toLowerCase().includes("!audio");
-      let cleanedMessage = telegramMessageToReplyTo;
-      if (isAudio && this.character.audioGenerationBehavior?.provider) {
-        cleanedMessage = telegramMessageToReplyTo
-          .toLowerCase()
-          .replace("audio", "");
+        const isAudio = ctx.msg.text?.toLowerCase().includes("!audio");
+        let cleanedMessage = telegramMessageToReplyTo;
+        if (isAudio && this.character.audioGenerationBehavior?.provider) {
+          cleanedMessage = telegramMessageToReplyTo
+            .toLowerCase()
+            .replace("audio", "");
+        }
+
+        const chatHistory = getChatHistory({
+          platform: "telegram",
+          chatId: ctx.chat.id.toString(),
+          userId: ctx.from.id.toString(),
+        });
+
+        const completion = await generateReply(
+          cleanedMessage,
+          this.character,
+          true,
+          chatHistory,
+        );
+
+        await this.sendResponse(ctx, completion.reply, isAudio);
+        await this.maybeSendSticker(ctx);
       }
-
-      const chatHistory = getChatHistory({
-        platform: "telegram",
-        chatId: ctx.chat.id.toString(),
-        userId: ctx.from.id.toString()
-      });
-
-      const completion = await generateReply(
-        cleanedMessage,
-        this.character,
-        true,
-        chatHistory
-      );
-
-      await this.sendResponse(ctx, completion.reply, isAudio);
-      await this.maybeSendSticker(ctx);
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
       logger.error("e.message", e.message);
@@ -101,9 +108,9 @@ export class TelegramProvider {
             message_type: "voice",
             metadata: {
               duration: sentMessage.voice?.duration,
-              file_size: sentMessage.voice?.file_size
+              file_size: sentMessage.voice?.file_size,
             },
-            is_bot_response: 1
+            is_bot_response: 1,
           });
         } else {
           // Fallback to text response
@@ -135,7 +142,7 @@ export class TelegramProvider {
       username: this.character.username,
       message_content: reply,
       message_type: "text",
-      is_bot_response: 1
+      is_bot_response: 1,
     });
   }
 
@@ -151,7 +158,7 @@ export class TelegramProvider {
                 this.character.postingBehavior.stickerFiles.length,
             )
           ];
-        
+
         const sentSticker = await ctx.replyWithSticker(randomSticker);
 
         // Save sticker to history
@@ -166,9 +173,9 @@ export class TelegramProvider {
           metadata: {
             sticker_id: randomSticker,
             set_name: sentSticker.sticker?.set_name,
-            emoji: sentSticker.sticker?.emoji
+            emoji: sentSticker.sticker?.emoji,
           },
-          is_bot_response: 1
+          is_bot_response: 1,
         });
       } else {
         logger.error(
@@ -179,24 +186,9 @@ export class TelegramProvider {
     }
   }
 
-  private async handlePromptGen(ctx: any) {
-    try {
-      const completion = await generateReply(
-        ctx.msg.text,
-        this.character,
-        false,
-      );
-      await ctx.reply(completion.reply);
-    } catch (e: any) {
-      logger.error(`There was an error: ${e}`);
-      logger.error("e.message", e.message);
-    }
-  }
-
   public start() {
     logger.info(`Telegram provider started for ${this.character.username}`);
 
-    this.bot.command("prompt", this.handlePromptGen.bind(this));
     this.bot.on("message", this.handleReply.bind(this));
 
     this.bot.start();

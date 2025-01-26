@@ -29,17 +29,22 @@ export class CliProvider {
         session_id: this.sessionId,
         message_content: input,
         message_type: "text",
-        is_bot_response: 0
+        is_bot_response: 0,
       });
 
       // Get prompt with chat history
       const chatHistory = getChatHistory({
         platform: "cli",
-        sessionId: this.sessionId
+        sessionId: this.sessionId,
       });
 
       // Generate reply with chat history context
-      const completion = await generateReply(input, this.character, true, chatHistory);
+      const completion = await generateReply(
+        input,
+        this.character,
+        true,
+        chatHistory,
+      );
 
       // Check if the response contains any special actions
       const hasSticker = completion.reply.includes("[STICKER]");
@@ -64,12 +69,14 @@ export class CliProvider {
         message_type: messageType,
         metadata,
         is_bot_response: 1,
-        prompt: completion.prompt
+        prompt: completion.prompt,
       });
 
       // Display the response appropriately
       if (hasSticker) {
-        console.log(`\n${this.character.username} sent a sticker: ${messageContent}\n`);
+        console.log(
+          `\n${this.character.username} sent a sticker: ${messageContent}\n`,
+        );
       } else {
         console.log(`\n${this.character.username}: ${messageContent}\n`);
       }
@@ -80,7 +87,9 @@ export class CliProvider {
   }
 
   public start() {
-    logger.info(`CLI provider started for ${this.character.username} (Session ID: ${this.sessionId})`);
+    logger.info(
+      `CLI provider started for ${this.character.username} (Session ID: ${this.sessionId})`,
+    );
     logger.info(
       `Starting chat with ${this.character.username}. Type your messages and press Enter. (Ctrl+C to quit)\n`,
     );

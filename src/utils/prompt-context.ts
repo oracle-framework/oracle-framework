@@ -1,4 +1,9 @@
-import { getLastMessages, formatChatHistoryForPrompt, Platform, ChatMessage } from "../database/chat-history";
+import {
+  getLastMessages,
+  formatChatHistoryForPrompt,
+  Platform,
+  ChatMessage,
+} from "../database/chat-history";
 
 interface ContextOptions {
   platform: Platform;
@@ -13,13 +18,16 @@ export const getChatHistory = (options: ContextOptions): string => {
   // Validate required IDs based on platform
   switch (options.platform) {
     case "discord":
-      if (!options.channelId) throw new Error("Channel ID required for Discord context");
+      if (!options.channelId)
+        throw new Error("Channel ID required for Discord context");
       break;
     case "telegram":
-      if (!options.chatId) throw new Error("Chat ID required for Telegram context");
+      if (!options.chatId)
+        throw new Error("Chat ID required for Telegram context");
       break;
     case "cli":
-      if (!options.sessionId) throw new Error("Session ID required for CLI context");
+      if (!options.sessionId)
+        throw new Error("Session ID required for CLI context");
       break;
   }
 
@@ -29,10 +37,10 @@ export const getChatHistory = (options: ContextOptions): string => {
     chatId: options.chatId,
     sessionId: options.sessionId,
     userId: options.userId,
-    limit: options.numMessages
+    limit: options.numMessages,
   });
 
   const chatHistory = formatChatHistoryForPrompt(messages);
-  
+
   return chatHistory;
 };

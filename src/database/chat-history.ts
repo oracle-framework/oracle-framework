@@ -1,7 +1,13 @@
 import { db } from "./index";
 
 export type Platform = "discord" | "telegram" | "cli";
-export type MessageType = "text" | "sticker" | "image" | "voice" | "video" | "action";
+export type MessageType =
+  | "text"
+  | "sticker"
+  | "image"
+  | "voice"
+  | "video"
+  | "action";
 
 export interface ChatMessage {
   platform: Platform;
@@ -20,7 +26,7 @@ export interface ChatMessage {
 
 export const saveChatMessage = (message: ChatMessage) => {
   const metadata = message.metadata ? JSON.stringify(message.metadata) : null;
-  
+
   return db
     .prepare(
       `INSERT INTO chat_messages (
@@ -28,7 +34,7 @@ export const saveChatMessage = (message: ChatMessage) => {
         platform_user_id, username, session_id,
         message_content, message_type, metadata,
         is_bot_response, prompt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       message.platform,
@@ -41,7 +47,7 @@ export const saveChatMessage = (message: ChatMessage) => {
       message.message_type,
       metadata,
       message.is_bot_response,
-      message.prompt || null
+      message.prompt || null,
     );
 };
 
@@ -55,9 +61,12 @@ interface GetMessagesOptions {
 }
 
 export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
-  const platformId = options.platform === "telegram" ? options.chatId :
-                    options.platform === "discord" ? options.channelId :
-                    options.sessionId;
+  const platformId =
+    options.platform === "telegram"
+      ? options.chatId
+      : options.platform === "discord"
+        ? options.channelId
+        : options.sessionId;
 
   const query = `
     SELECT * FROM chat_messages 
@@ -70,7 +79,7 @@ export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
     )
     AND (
       -- Include messages from the specific user
-      ${options.userId ? 'platform_user_id = ?' : '1=1'}
+      ${options.userId ? "platform_user_id = ?" : "1=1"}
       OR 
       -- Include bot responses in the same conversation thread
       (is_bot_response = 1 AND EXISTS (
@@ -85,8 +94,15 @@ export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
     LIMIT ?
   `;
 
-  const params = options.userId 
-    ? [options.platform, platformId, platformId, options.userId, options.userId, options.limit || 10]
+  const params = options.userId
+    ? [
+        options.platform,
+        platformId,
+        platformId,
+        options.userId,
+        options.userId,
+        options.limit || 10,
+      ]
     : [options.platform, platformId, platformId, options.limit || 10];
 
   const results = db.prepare(query).all(...params) as any[];
@@ -94,14 +110,14 @@ export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
   // Parse metadata JSON for each message
   return results.map(msg => ({
     ...msg,
-    metadata: msg.metadata ? JSON.parse(msg.metadata) : undefined
+    metadata: msg.metadata ? JSON.parse(msg.metadata) : undefined,
   }));
 };
 
 export const formatChatHistoryForPrompt = (messages: ChatMessage[]): string => {
   return messages
     .reverse()
-    .map((msg) => {
+    .map(msg => {
       const role = msg.is_bot_response ? "Assistant" : "User";
       let content = msg.message_content;
 

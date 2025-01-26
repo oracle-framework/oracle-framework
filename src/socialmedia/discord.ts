@@ -47,19 +47,24 @@ export class DiscordProvider {
           username: message.author.username,
           message_content: text,
           message_type: "text",
-          is_bot_response: 0
+          is_bot_response: 0,
         });
 
         // Get chat history for this user in this channel
         const chatHistory = getChatHistory({
           platform: "discord",
           channelId: message.channelId,
-          userId: message.author.id
+          userId: message.author.id,
         });
 
         // Generate reply with chat history context
-        const completion = await generateReply(text, this.character, true, chatHistory);
-        
+        const completion = await generateReply(
+          text,
+          this.character,
+          true,
+          chatHistory,
+        );
+
         logger.debug("LLM completion done.");
 
         // Send the reply
@@ -75,7 +80,7 @@ export class DiscordProvider {
           message_content: completion.reply,
           message_type: "text",
           is_bot_response: 1,
-          prompt: completion.prompt
+          prompt: completion.prompt,
         });
       } catch (e: any) {
         logger.error(`There was an error: ${e}`);

@@ -26,13 +26,15 @@ export const initializeSchema = () => {
 
 export const migrateSchema = () => {
   // Check if we need to migrate the chat_messages table
-  const tableInfo = db.prepare("PRAGMA table_info(chat_messages)").all() as any[];
-  const hasMessageType = tableInfo.some(col => col.name === 'message_type');
-  
+  const tableInfo = db
+    .prepare("PRAGMA table_info(chat_messages)")
+    .all() as any[];
+  const hasMessageType = tableInfo.some(col => col.name === "message_type");
+
   if (!hasMessageType) {
     // Drop and recreate the table if it exists
     db.prepare("DROP TABLE IF EXISTS chat_messages").run();
-    
+
     // Create unified chat messages table with new schema
     db.prepare(
       `
