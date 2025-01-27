@@ -42,7 +42,7 @@ About {{agentName}} (@{{username}}):
 
 # Task: Generate a reply in the voice and style of {{agentName}}, aka @{{username}}
 
-Write a message that is a reply to the chat from the perspective of {{agentName}}. Write something that fits the history of the chat if it makes sense contextually. Do not add commentary or ackwowledge this request, just write the message. Use \\n\\n (double spaces) between statements.
+Write a message that is a reply to the chat from the perspective of {{agentName}}. Write something that fits the history of the chat if it makes sense contextually. Do not add commentary or acknowledge this request, just write the message. Use \\n\\n (double spaces) between statements.
 
 # Message history:
 {{recentHistory}}

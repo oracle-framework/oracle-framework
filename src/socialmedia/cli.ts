@@ -23,8 +23,7 @@ export class CliProvider {
 
   private async handleUserInput(input: string) {
     try {
-      // Save user message
-      await saveChatMessage({
+      saveChatMessage({
         platform: "cli",
         session_id: this.sessionId,
         message_content: input,
@@ -32,13 +31,11 @@ export class CliProvider {
         is_bot_response: 0,
       });
 
-      // Get prompt with chat history
       const chatHistory = getChatHistory({
         platform: "cli",
         sessionId: this.sessionId,
       });
 
-      // Generate reply with chat history context
       const completion = await generateReply(
         input,
         this.character,
@@ -46,43 +43,22 @@ export class CliProvider {
         chatHistory,
       );
 
-      // Check if the response contains any special actions
-      const hasSticker = completion.reply.includes("[STICKER]");
-      const messageType: MessageType = hasSticker ? "sticker" : "text";
-      let messageContent = completion.reply;
-      let metadata: Record<string, any> | undefined;
+      const messageType: MessageType = "text";
+      const messageContent = completion.reply;
 
-      if (hasSticker) {
-        // Extract sticker info if present
-        const stickerMatch = completion.reply.match(/\[STICKER:([^\]]+)\]/);
-        if (stickerMatch) {
-          messageContent = stickerMatch[1].trim();
-          metadata = { sticker_id: messageContent };
-        }
-      }
-
-      // Save bot response
       saveChatMessage({
         platform: "cli",
         session_id: this.sessionId,
         message_content: messageContent,
         message_type: messageType,
-        metadata,
         is_bot_response: 1,
         prompt: completion.prompt,
       });
 
-      // Display the response appropriately
-      if (hasSticker) {
-        console.log(
-          `\n${this.character.username} sent a sticker: ${messageContent}\n`,
-        );
-      } else {
-        console.log(`\n${this.character.username}: ${messageContent}\n`);
-      }
-    } catch (e: any) {
-      logger.error(`There was an error: ${e}`);
-      logger.error("e.message", e.message);
+      console.log(messageContent);
+    } catch (e) {
+      logger.error("There was an error:", e);
+      logger.error("e.message");
     }
   }
 

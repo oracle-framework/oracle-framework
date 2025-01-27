@@ -216,8 +216,6 @@ export const generateReply = async (
       recentHistory: recentHistory || "",
     };
 
-    logger.debug(`Context: ${JSON.stringify(context)}`);
-
     const prompt = generatePrompt(context, isChatMode, inputMessage.length);
 
     let reply = await generateCompletionForCharacter(
