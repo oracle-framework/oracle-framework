@@ -8,7 +8,15 @@ import {
   generateTopicPost,
   handleBannedAndLengthRetries,
 } from "../completions";
-import { getTweetByInputTweetId, insertTweet } from "../database";
+import { insertTweet, getTweetByInputTweetId } from "../database";
+import {
+  getTwitterHistory,
+  getConversationHistory,
+  TwitterHistory,
+  formatTwitterHistoryForPrompt,
+  getUserInteractionCount,
+  getTwitterHistoryByUsername,
+} from "../database/twitter-history";
 import { generateImageForTweet } from "../images";
 import { logger } from "../logger";
 import { randomInterval } from "../utils";
@@ -20,6 +28,23 @@ interface Mention {
   created_at: Date;
   text: string;
   user_id_str: string;
+  conversation_id?: string;
+}
+
+interface TwitterCreateTweetResponse {
+  data?: {
+    create_tweet: {
+      tweet_results: {
+        result: {
+          rest_id: string;
+        };
+      };
+    };
+  };
+  errors?: Array<{
+    message: string;
+    code: string;
+  }>;
 }
 
 export class TwitterProvider {
@@ -63,131 +88,6 @@ export class TwitterProvider {
     return this;
   }
 
-  public async getTimeline(): Promise<CleanedTweet[]> {
-    const tweets = await this.scraper.fetchHomeTimeline(50, []);
-    return tweets.map(tweet => ({
-      id: tweet.tweet ? tweet.tweet.rest_id : tweet.rest_id,
-      created_at: tweet.tweet
-        ? new Date(tweet.tweet.legacy.created_at)
-        : new Date(tweet.legacy.created_at),
-      text: tweet.tweet ? tweet.tweet.legacy.full_text : tweet.legacy.full_text,
-      user_id_str: tweet.tweet
-        ? tweet.tweet.legacy.user_id_str
-        : tweet.legacy.user_id_str,
-    }));
-  }
-
-  public async findMentions(mentionsLimit: number) {
-    const query = `@${this.character.username} -from:${this.character.username} -filter:retweets ${this.character.postingBehavior.shouldIgnoreTwitterReplies ? "-filter:replies" : ""}`;
-    const mentions = await this.scraper.searchTweets(
-      query,
-      mentionsLimit,
-      SearchMode.Latest,
-    );
-
-    const cleanedMentions = [];
-    for await (const mention of mentions) {
-      const cleanedMention = {
-        id: mention.id,
-        user: mention.username,
-        created_at: mention.timeParsed,
-        text: mention.text,
-        user_id_str: mention.userId,
-      } as Mention;
-      cleanedMentions.push(cleanedMention);
-    }
-    return cleanedMentions;
-  }
-
-  private async sendTweetWithMedia(text: string, imageBuffer: Buffer) {
-    return await this.scraper.sendTweet(text, "", [
-      { data: imageBuffer, mediaType: "image/jpeg" },
-    ]);
-  }
-
-  private async handleTopicPostResponse(completion: any, response: any) {
-    const responseJson = await response.json();
-    if (!responseJson.data?.create_tweet) {
-      logger.error("An error occurred:", { responseJson });
-      logger.error("responseJson.errors", responseJson.errors);
-      return;
-    }
-
-    const newTweetId =
-      responseJson.data.create_tweet.tweet_results.result.rest_id;
-    logger.info(`The reply tweet was sent: ${newTweetId}`);
-
-    insertTweet(this.character.username, {
-      input_tweet_id: "",
-      input_tweet_created_at: "",
-      input_tweet_text: "",
-      input_tweet_user_id: "",
-      new_tweet_id: newTweetId,
-      prompt: completion.prompt,
-      new_tweet_text: completion.reply,
-    });
-    logger.info("A row was inserted into the database.\n");
-  }
-
-  private async writeTopicPost() {
-    logger.info(
-      `***CALLING writeTopicPost for ${this.character.username} at ${new Date().toLocaleString()}***`,
-    );
-
-    try {
-      const completion = await generateTopicPost(this.character);
-      logger.info("The LLM completion was completed.");
-
-      let sendTweetResponse;
-      const shouldGenerateImage =
-        this.character.postingBehavior.generateImagePrompt &&
-        Math.random() <
-          (this.character.postingBehavior.imagePromptChance || 0.3);
-
-      logger.debug(`shouldGenerateImage: ${shouldGenerateImage}`);
-
-      if (shouldGenerateImage) {
-        try {
-          let imagePrompt = await generateImagePromptForCharacter(
-            completion.reply,
-            this.character,
-          );
-          imagePrompt = await handleBannedAndLengthRetries(
-            imagePrompt,
-            imagePrompt,
-            this.character,
-            1024,
-            3,
-          );
-          const imageBuffer = await generateImageForTweet(
-            imagePrompt,
-            this.character,
-          );
-          sendTweetResponse = await this.sendTweetWithMedia(
-            completion.reply,
-            imageBuffer,
-          );
-        } catch (e) {
-          logger.error("Error sending tweet with image:", e);
-          // Fallback to sending tweet without image
-          logger.info("Falling back to sending tweet without image");
-          sendTweetResponse = await this.scraper.sendTweet(completion.reply);
-        }
-      } else {
-        sendTweetResponse = await this.scraper.sendTweet(completion.reply);
-      }
-
-      if (!sendTweetResponse) {
-        throw new Error("Failed to send tweet - no response received");
-      }
-
-      await this.handleTopicPostResponse(completion, sendTweetResponse);
-    } catch (e: any) {
-      logger.error(`There was an error: ${e}`);
-      logger.error("e.message", e.message);
-    }
-  }
-
   public async startTopicPosts() {
     const defaultBound = 30;
     const {
@@ -200,8 +100,8 @@ export class TwitterProvider {
     const upperBound = topicInterval + upperBoundPostingInterval * 60 * 1000;
 
     try {
-      await this.writeTopicPost();
-      randomInterval(() => this.writeTopicPost(), lowerBound, upperBound);
+      await this.generateTimelinePost();
+      randomInterval(() => this.generateTimelinePost(), lowerBound, upperBound);
     } catch (error: unknown) {
       logger.error("Error writing topic post:", error);
     }
@@ -224,69 +124,13 @@ export class TwitterProvider {
           60 *
           1000;
 
-    await this.replyGuy();
-    randomInterval(async () => await this.replyGuy(), lowerBound, upperBound);
-  }
-
-  private async replyGuy() {
-    logger.info(
-      `***CALLING replyGuy for ${this.character.username} at ${new Date().toLocaleString()}***`,
+    await this.generateTimelineResponse();
+    randomInterval(
+      async () => await this.generateTimelineResponse(),
+      lowerBound,
+      upperBound,
     );
-
-    try {
-      let timeline = await this.getTimeline();
-      logger.info(`Fetched ${timeline.length} posts from the timeline.`);
-
-      timeline = timeline.filter(
-        x =>
-          !x.text.includes("http") &&
-          !this.processedTweets.includes(x.id) &&
-          !this.recentUsersTweetedAt.includes(x.user_id_str) &&
-          !this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
-      );
-
-      logger.info(`After filtering, ${timeline.length} posts remain.`);
-      const mostRecentTweet = timeline.reduce((latest, current) => {
-        return new Date(current.created_at) > new Date(latest.created_at)
-          ? current
-          : latest;
-      }, timeline[0]);
-
-      const mostRecentTweetMinutesAgo = Math.round(
-        (Date.now() - mostRecentTweet.created_at.getTime()) / 1000 / 60,
-      );
-      logger.info(
-        `The most recent tweet was ${mostRecentTweetMinutesAgo} minutes ago.`,
-      );
-
-      this.recentUsersTweetedAt.push(mostRecentTweet.user_id_str);
-      const completion = await generateReply(
-        mostRecentTweet.text,
-        this.character,
-      );
-      logger.info("The LLM completion was completed.");
-
-      const sendTweetResponse = await this.scraper.sendTweet(
-        completion.reply,
-        mostRecentTweet.id,
-      );
-      await this.handleAutoReplyResponse(
-        completion,
-        sendTweetResponse,
-        mostRecentTweet,
-      );
-    } catch (e: any) {
-      logger.error(`There was an error: ${e}`);
-      logger.error("e.message", e.message);
-    }
   }
-
-  private processedTweets: string[] = [];
-  private recentUsersTweetedAt: string[] = [];
-  private recentInteractions = new Map<string, number>();
-  private userInteractionCounts = new Map<string, number>();
-  private readonly INTERACTION_LIMIT = 3;
-  private readonly INTERACTION_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
   public async startReplyingToMentions() {
     const defaultBound = 2;
@@ -311,108 +155,388 @@ export class TwitterProvider {
     );
   }
 
+  private async generateTimelinePost() {
+    logger.info(
+      `Calling generateTimelinePost for ${this.character.username} at ${new Date().toLocaleString()}`,
+    );
+
+    try {
+      const botHistory = await getTwitterHistoryByUsername(
+        this.character.username,
+      );
+      const formattedHistory = formatTwitterHistoryForPrompt(botHistory);
+
+      const completion = await generateTopicPost(
+        this.character,
+        formattedHistory,
+      );
+      logger.info("LLM completion done.");
+
+      let sendTweetResponse;
+
+      const shouldGenerateImage =
+        this.character.postingBehavior.generateImagePrompt &&
+        Math.random() <
+          (this.character.postingBehavior.imagePromptChance || 0.3);
+
+      logger.debug(`shouldGenerateImage: ${shouldGenerateImage}`);
+
+      if (shouldGenerateImage) {
+        try {
+          const imageBuffer =
+            await this.generateImageForTwitterPost(completion);
+          sendTweetResponse = await this.sendTweetWithMedia(
+            completion.reply,
+            imageBuffer,
+          );
+        } catch (e) {
+          logger.error("Error sending tweet with image:", e);
+          // Fallback to sending tweet without image
+          logger.info("Falling back to sending tweet without image");
+          sendTweetResponse = await this.scraper.sendTweet(completion.reply);
+        }
+      } else {
+        sendTweetResponse = await this.scraper.sendTweet(completion.reply);
+      }
+
+      if (!sendTweetResponse) {
+        throw new Error("Failed to send tweet - no response received");
+      }
+
+      const responseJson =
+        (await sendTweetResponse.json()) as TwitterCreateTweetResponse;
+      if (!responseJson.data?.create_tweet) {
+        logger.error("An error occurred:", { responseJson });
+        return;
+      }
+
+      const newTweetId =
+        responseJson.data.create_tweet.tweet_results.result.rest_id;
+      logger.info(`The reply tweet was sent: ${newTweetId}`);
+
+      insertTweet(this.character.username, {
+        input_tweet_id: "",
+        input_tweet_created_at: "",
+        input_tweet_text: "",
+        input_tweet_user_id: "",
+        input_tweet_username: "",
+        new_tweet_id: newTweetId,
+        prompt: completion.prompt,
+        new_tweet_text: completion.reply,
+      });
+      logger.info("A row was inserted into the database.\n");
+    } catch (e: any) {
+      logger.error(`There was an error: ${e}`);
+      logger.error("e.message", e.message);
+    }
+  }
+
+  private async generateTimelineResponse() {
+    logger.info(
+      `Calling generateTimelineResponse for ${this.character.username} at ${new Date().toLocaleString()}***`,
+    );
+
+    try {
+      let timeline = await this.getTimeline();
+      logger.info(`Fetched ${timeline.length} posts from the timeline.`);
+
+      timeline = timeline.filter(
+        x =>
+          !x.text.includes("http") &&
+          !getTweetByInputTweetId(x.id) &&
+          !(
+            getUserInteractionCount(
+              x.user_id_str,
+              this.character.username,
+              this.INTERACTION_TIMEOUT,
+            ) > this.INTERACTION_LIMIT
+          ) &&
+          !this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
+      );
+
+      logger.info(`After filtering, ${timeline.length} posts remain.`);
+      const mostRecentTweet = timeline.reduce((latest, current) => {
+        return new Date(current.created_at) > new Date(latest.created_at)
+          ? current
+          : latest;
+      }, timeline[0]);
+
+      const mostRecentTweetMinutesAgo = Math.round(
+        (Date.now() - mostRecentTweet.created_at.getTime()) / 1000 / 60,
+      );
+      logger.info(
+        `The most recent tweet was ${mostRecentTweetMinutesAgo} minutes ago.`,
+      );
+
+      const history = getTwitterHistory(this.character.username, 10);
+
+      const historyByUser = getTwitterHistory(mostRecentTweet.user_id_str, 10);
+
+      const formattedHistory = formatTwitterHistoryForPrompt(
+        history.concat(historyByUser),
+      );
+
+      const completion = await generateReply(
+        mostRecentTweet.text,
+        this.character,
+        false,
+        formattedHistory,
+      );
+
+      logger.info("LLM completion done.");
+
+      const sendTweetResponse = await this.scraper.sendTweet(
+        completion.reply,
+        mostRecentTweet.id,
+      );
+
+      const newTweetJson =
+        (await sendTweetResponse.json()) as TwitterCreateTweetResponse;
+
+      if (!newTweetJson.data?.create_tweet) {
+        logger.error("An error occurred:", { responseJson: newTweetJson });
+        return;
+      }
+
+      insertTweet(this.character.username, {
+        input_tweet_id: mostRecentTweet.id,
+        input_tweet_created_at: mostRecentTweet.created_at.toISOString(),
+        input_tweet_text: mostRecentTweet.text,
+        input_tweet_user_id: mostRecentTweet.user_id_str,
+        input_tweet_username: mostRecentTweet.user,
+        new_tweet_id:
+          newTweetJson.data.create_tweet.tweet_results.result.rest_id,
+        prompt: completion.prompt,
+        new_tweet_text: completion.reply,
+      });
+    } catch (e: any) {
+      logger.error(`There was an error: ${e}`);
+      logger.error("e.message", e.message);
+    }
+  }
+
   private async replyToMentions() {
     logger.info("Running replyToMentions", new Date().toISOString());
-    const mentions = await this.findMentions(10);
-    logger.info(`Found ${mentions.length} mentions`);
+    try {
+      const mentions = await this.findMentions(10);
+      logger.info(`Found ${mentions.length} mentions`);
 
-    for (const mention of mentions) {
-      try {
-        if (await this.shouldSkipMention(mention)) continue;
-        if (!mention.text) continue;
+      for (const mention of mentions) {
+        try {
+          if (!mention.text || !mention.id) {
+            logger.info(`Skipping mention ${mention.id}: No text or ID`);
+            continue;
+          }
 
-        logger.info(
-          `Processing new mention ${mention.id} from ${mention.user}`,
-        );
-        const completion = await generateReply(mention.text, this.character);
+          const shouldSkip = await this.shouldSkipMention(mention);
+          if (shouldSkip) {
+            logger.info(
+              `Skipping mention ${mention.id}: Already processed or too many interactions`,
+            );
+            continue;
+          }
 
-        await new Promise(resolve => setTimeout(resolve, 15000)); // Default delay
-        await this.scraper.sendTweet(completion.reply, mention.id);
+          logger.info(
+            `Processing new mention ${mention.id} from ${mention.user}: ${mention.text}`,
+          );
 
-        await this.recordInteraction(mention);
-        await this.saveMentionToDb(mention, completion);
-      } catch (e) {
-        logger.error(`Error processing mention ${mention.id}:`, e);
+          await new Promise(resolve => setTimeout(resolve, 15000)); // Default delay
+          const history = this.getTwitterHistoryByMention(mention);
+          const formattedHistory = formatTwitterHistoryForPrompt(
+            history,
+            false,
+          );
+
+          const completion = await generateReply(
+            mention.text,
+            this.character,
+            false,
+            formattedHistory,
+          );
+
+          logger.info(`Generated reply for ${mention.id}: ${completion.reply}`);
+
+          const sendTweetResponse = await this.scraper.sendTweet(
+            completion.reply,
+            mention.id,
+          );
+
+          const responseJson =
+            (await sendTweetResponse.json()) as TwitterCreateTweetResponse;
+          if (!responseJson.data?.create_tweet) {
+            logger.error("Failed to send tweet:", { responseJson });
+            continue;
+          }
+
+          const newTweetId =
+            responseJson.data.create_tweet.tweet_results.result.rest_id;
+
+          logger.info(`The reply tweet was sent: ${newTweetId}`);
+
+          insertTweet(this.character.username, {
+            input_tweet_id: mention.id,
+            input_tweet_created_at: mention.created_at.toISOString(),
+            input_tweet_text: mention.text,
+            input_tweet_user_id: mention.user_id_str,
+            input_tweet_username: mention.user,
+            new_tweet_id: newTweetId,
+            prompt: completion.prompt,
+            new_tweet_text: completion.reply,
+            conversation_id: mention.conversation_id,
+          });
+        } catch (e) {
+          logger.error(`Error processing mention ${mention.id}:`, e);
+          if (e instanceof Error) {
+            logger.error("Error stack:", e.stack);
+          }
+          // Log the mention that failed
+          logger.error("Failed mention:", JSON.stringify(mention, null, 2));
+        }
+      }
+    } catch (e) {
+      logger.error("Error in replyToMentions:", e);
+      if (e instanceof Error) {
+        logger.error("Error stack:", e.stack);
       }
     }
     logger.info("Finished replyToMentions", new Date().toISOString());
   }
 
+  private getTwitterHistoryByMention(mention: Mention): TwitterHistory[] {
+    let history: TwitterHistory[] = [];
+    history.push(...getTwitterHistory(mention.user_id_str, 10));
+    if (mention.conversation_id) {
+      history.push(...getConversationHistory(mention.conversation_id, 10));
+    }
+    return history;
+  }
+
   private async shouldSkipMention(mention: Mention) {
-    if (!mention.id) return true;
+    try {
+      if (!mention.id || !mention.user_id_str) {
+        logger.info(`Skipping mention: Missing ID or user_id_str`);
+        return true;
+      }
 
-    const existingReply = await getTweetByInputTweetId(mention.id);
-    if (existingReply) {
-      logger.info(`Already replied to tweet ${mention.id}, skipping...`);
-      return true;
-    }
+      // Skip if we've already processed this tweet
+      const existingTweet = getTweetByInputTweetId(mention.id);
+      if (existingTweet) {
+        logger.info(`Skipping mention ${mention.id}: Already processed`);
+        return true;
+      }
 
-    const lastInteraction = this.recentInteractions.get(mention.user_id_str);
-    const now = Date.now();
-    if (lastInteraction && now - lastInteraction < this.INTERACTION_TIMEOUT) {
-      logger.info(
-        `Recently interacted with user ${mention.user_id_str}, skipping...`,
+      // Get interaction count from twitter_history
+      const interactionCount = getUserInteractionCount(
+        mention.user_id_str,
+        this.character.username,
+        this.INTERACTION_TIMEOUT,
       );
+
+      if (interactionCount > this.INTERACTION_LIMIT) {
+        logger.info(
+          `Skipping mention ${mention.id}: Too many interactions (${interactionCount}) with user ${mention.user_id_str}`,
+        );
+        return true;
+      }
+
+      // Skip if user is in dontTweetAt list
+      if (
+        this.character.postingBehavior.dontTweetAt?.includes(
+          mention.user_id_str,
+        )
+      ) {
+        logger.info(`Skipping mention ${mention.id}: User in dontTweetAt list`);
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      logger.error(`Error in shouldSkipMention for mention ${mention.id}:`, e);
+      if (e instanceof Error) {
+        logger.error("Error stack:", e.stack);
+      }
+      // If there's an error checking, better to skip
       return true;
     }
+  }
 
-    const interactionCount =
-      this.userInteractionCounts.get(mention.user_id_str) || 0;
-    if (interactionCount >= this.INTERACTION_LIMIT) {
-      logger.info(
-        `Interaction limit reached for user ${mention.user_id_str}, skipping...`,
-      );
-      return true;
+  private async getTimeline(): Promise<CleanedTweet[]> {
+    const tweets = await this.scraper.fetchHomeTimeline(50, []);
+    return tweets.map(tweet => ({
+      id: tweet.tweet ? tweet.tweet.rest_id : tweet.rest_id,
+      created_at: tweet.tweet
+        ? new Date(tweet.tweet.legacy.created_at)
+        : new Date(tweet.legacy.created_at),
+      text: tweet.tweet ? tweet.tweet.legacy.full_text : tweet.legacy.full_text,
+      user_id_str: tweet.tweet
+        ? tweet.tweet.legacy.user_id_str
+        : tweet.legacy.user_id_str,
+      user: tweet.tweet
+        ? tweet.tweet.legacy.user.screen_name
+        : tweet.legacy.user.screen_name,
+    }));
+  }
+
+  private async findMentions(mentionsLimit: number) {
+    const query = `@${this.character.username} -from:${this.character.username} -filter:retweets ${this.character.postingBehavior.shouldIgnoreTwitterReplies ? "-filter:replies" : ""}`;
+    const mentions = await this.scraper.searchTweets(
+      query,
+      mentionsLimit,
+      SearchMode.Latest,
+    );
+
+    const cleanedMentions = [];
+    for await (const mention of mentions) {
+      if (!mention.username) continue;
+      const profile = await this.scraper.getProfile(mention.username);
+      if (!profile.followersCount) continue;
+      if (profile.followersCount < 50) {
+        logger.info(
+          `Mention ${mention.id} skipped, user ${mention.username} has less than 50 followers`,
+        );
+        continue;
+      }
+      const cleanedMention = {
+        id: mention.id,
+        user: mention.username,
+        created_at: mention.timeParsed,
+        text: mention.text,
+        user_id_str: mention.userId,
+        conversation_id: mention.conversationId,
+      } as Mention;
+      cleanedMentions.push(cleanedMention);
     }
-
-    return false;
+    return cleanedMentions;
   }
 
-  private async recordInteraction(mention: Mention) {
-    const now = Date.now();
-    this.recentInteractions.set(mention.user_id_str, now);
-    const count = this.userInteractionCounts.get(mention.user_id_str) || 0;
-    this.userInteractionCounts.set(mention.user_id_str, count + 1);
+  private async sendTweetWithMedia(text: string, imageBuffer: Buffer) {
+    return await this.scraper.sendTweet(text, "", [
+      { data: imageBuffer, mediaType: "image/jpeg" },
+    ]);
   }
 
-  private async saveMentionToDb(mention: Mention, completion: any) {
-    insertTweet(this.character.username, {
-      input_tweet_id: mention.id,
-      input_tweet_created_at: mention.created_at.toISOString(),
-      input_tweet_text: mention.text,
-      input_tweet_user_id: mention.user_id_str,
-      new_tweet_id: completion.reply,
-      prompt: completion.prompt,
-      new_tweet_text: completion.reply,
-    });
-    logger.info("A row was inserted into the database.\n");
+  private async generateImageForTwitterPost(completion: {
+    prompt: string;
+    reply: string;
+  }) {
+    let imagePrompt = await generateImagePromptForCharacter(
+      completion.reply,
+      this.character,
+    );
+    imagePrompt = await handleBannedAndLengthRetries(
+      imagePrompt,
+      imagePrompt,
+      this.character,
+      1024,
+      3,
+    );
+    const imageBuffer = await generateImageForTweet(
+      imagePrompt,
+      this.character,
+    );
+    return imageBuffer;
   }
 
-  private async handleAutoReplyResponse(
-    completion: any,
-    response: any,
-    originalTweet: any,
-  ) {
-    const responseJson = await response.json();
-    if (!responseJson.data?.create_tweet) {
-      logger.error("An error occurred:", { responseJson });
-      logger.error("responseJson.errors", responseJson.errors);
-      return;
-    }
-
-    const newTweetId =
-      responseJson.data.create_tweet.tweet_results.result.rest_id;
-    logger.info(`The reply tweet was sent: ${newTweetId}`);
-
-    insertTweet(this.character.username, {
-      input_tweet_id: originalTweet.id,
-      input_tweet_created_at: originalTweet.created_at.toISOString(),
-      input_tweet_text: originalTweet.text,
-      input_tweet_user_id: originalTweet.user_id_str,
-      new_tweet_id: newTweetId,
-      prompt: completion.prompt,
-      new_tweet_text: completion.reply,
-    });
-    logger.info("A row was inserted into the database.\n");
-  }
+  private readonly INTERACTION_LIMIT = 3;
+  private readonly INTERACTION_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
 }

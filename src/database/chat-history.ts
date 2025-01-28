@@ -46,9 +46,9 @@ export const saveChatMessage = (message: ChatMessage) => {
     message.message_type,
     metadata,
     message.is_bot_response,
-    message.prompt || null
+    message.prompt || null,
   );
-  
+
   return result;
 };
 
@@ -61,7 +61,7 @@ interface GetMessagesOptions {
   limit?: number;
 }
 
-export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {  
+export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
   const platformId =
     options.platform === "telegram"
       ? options.chatId
@@ -82,7 +82,13 @@ export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
     LIMIT ?
   `;
 
-  const params = [options.platform, platformId, platformId, platformId, options.limit || 10];
+  const params = [
+    options.platform,
+    platformId,
+    platformId,
+    platformId,
+    options.limit || 10,
+  ];
 
   const results = db.prepare(query).all(...params) as any[];
 

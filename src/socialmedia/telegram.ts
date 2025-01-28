@@ -57,7 +57,7 @@ export class TelegramProvider {
         if (isAudio && this.character.audioGenerationBehavior?.provider) {
           cleanedMessage = telegramMessageToReplyTo
             .toLowerCase()
-            .replace("audio", "");
+            .replace("!audio", "");
         }
 
         const chatHistory = getChatHistory({
