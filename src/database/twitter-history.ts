@@ -45,7 +45,7 @@ export const saveTwitterHistory = (history: TwitterHistory) => {
         username
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
 
-    const result = stmt.run(
+    stmt.run(
       history.twitter_user_id,
       history.tweet_id,
       history.tweet_text,
