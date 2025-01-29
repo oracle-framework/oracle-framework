@@ -99,36 +99,40 @@ export const migrateSchema = (db: Database) => {
 
   if (!hasMessageType) {
     // Drop and recreate the table if it exists
-    db.prepare("DROP TABLE IF EXISTS chat_messages").run();
+    db.exec(`
+      DROP TABLE IF EXISTS chat_messages;
 
-    // Create unified chat messages table with new schema
-    db.prepare(
-      `
       CREATE TABLE chat_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        platform TEXT NOT NULL,
-        platform_channel_id TEXT,
-        platform_message_id TEXT,
-        platform_user_id TEXT,
-        username TEXT,
-        session_id TEXT,
-        message_content TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
         message_type TEXT NOT NULL DEFAULT 'text',
-        metadata TEXT,
-        is_bot_response INTEGER NOT NULL,
-        prompt TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(platform, platform_message_id)
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        conversation_id TEXT NOT NULL,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id)
       );
-    `,
-    ).run();
 
-    // Create index for efficient querying
-    db.prepare(
-      `
-      CREATE INDEX IF NOT EXISTS idx_platform_date 
-      ON chat_messages(platform, created_at DESC);
-    `,
-    ).run();
+      CREATE INDEX idx_chat_messages_conversation ON chat_messages(conversation_id);
+    `);
+  }
+
+  // Check if twitter_history needs the input_tweet_id column
+  const twitterHistoryInfo = db
+    .prepare("PRAGMA table_info(twitter_history)")
+    .all() as any[];
+  const hasInputTweetId = twitterHistoryInfo.some(col => col.name === "input_tweet_id");
+
+  if (!hasInputTweetId) {
+    db.exec(`
+      ALTER TABLE twitter_history 
+      ADD COLUMN input_tweet_id TEXT;
+    `);
+    
+    // Update existing records to set input_tweet_id based on conversation_id
+    db.exec(`
+      UPDATE twitter_history
+      SET input_tweet_id = conversation_id
+      WHERE is_bot_tweet = 1 AND input_tweet_id IS NULL;
+    `);
   }
 };

@@ -209,16 +209,12 @@ export const generateReply = async (
 
     const prompt = generatePrompt(context, isChatMode, inputMessage.length);
 
-    console.log("Prompt:", prompt);
-
     let reply = await generateCompletionForCharacter(
       prompt,
       character,
       isChatMode,
       inputMessage,
     );
-
-    console.log("Reply:", reply);
 
     // Add ban/length handling
     if (!isChatMode) {

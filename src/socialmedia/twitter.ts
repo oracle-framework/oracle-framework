@@ -9,18 +9,11 @@ import {
   handleBannedAndLengthRetries,
 } from "../completions";
 import { insertTweet, getTweetByInputTweetId } from "../database";
-import {
-  getTwitterHistory,
-  getConversationHistory,
-  TwitterHistory,
-  formatTwitterHistoryForPrompt,
-  getUserInteractionCount,
-  getTwitterHistoryByUsername,
-} from "../database/twitter-history";
 import { generateImageForTweet } from "../images";
 import { logger } from "../logger";
 import { randomInterval } from "../utils";
 import { CleanedTweet } from "./types";
+import { formatTwitterHistoryForPrompt, getConversationHistory, getTwitterHistory, getTwitterHistoryByUsername, getUserInteractionCount, TwitterHistory } from "../database/tweets";
 
 interface Mention {
   id: string;
@@ -242,17 +235,14 @@ export class TwitterProvider {
 
       timeline = timeline.filter(
         x =>
-          !x.text.includes("http") &&
-          !getTweetByInputTweetId(x.id) &&
-          !(
-            getUserInteractionCount(
-              x.user_id_str,
-              this.character.username,
-              this.INTERACTION_TIMEOUT,
-            ) > this.INTERACTION_LIMIT
-          ) &&
-          !this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
-      );
+          !x.text.includes("http") ||
+          this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
+      ).filter(x => getTweetByInputTweetId(x.id) === undefined)
+      .filter(x => getUserInteractionCount(
+        x.user_id_str,
+        this.character.username,
+        this.INTERACTION_TIMEOUT,
+      ) <= this.INTERACTION_LIMIT);
 
       logger.info(`After filtering, ${timeline.length} posts remain.`);
       const mostRecentTweet = timeline.reduce((latest, current) => {
@@ -462,19 +452,43 @@ export class TwitterProvider {
 
   private async getTimeline(): Promise<CleanedTweet[]> {
     const tweets = await this.scraper.fetchHomeTimeline(50, []);
-    return tweets.map(tweet => ({
-      id: tweet.tweet ? tweet.tweet.rest_id : tweet.rest_id,
-      created_at: tweet.tweet
-        ? new Date(tweet.tweet.legacy.created_at)
-        : new Date(tweet.legacy.created_at),
-      text: tweet.tweet ? tweet.tweet.legacy.full_text : tweet.legacy.full_text,
-      user_id_str: tweet.tweet
-        ? tweet.tweet.legacy.user_id_str
-        : tweet.legacy.user_id_str,
-      user: tweet.tweet
-        ? tweet.tweet.legacy.user.screen_name
-        : tweet.legacy.user.screen_name,
-    }));
+    const cleanedTweets = [];
+
+    logger.debug(`Got ${tweets.length} tweets from timeline`);
+
+    for (const tweet of tweets) {
+      try {
+        const tweetData = tweet.tweet || tweet;
+        if (!tweetData || !tweetData.legacy) {
+          logger.debug('Skipping tweet - missing legacy data');
+          continue;
+        }
+
+        let user_id_str = '';
+        let user = '';
+        try {
+          user_id_str = tweetData.legacy.user_id_str;
+          user = tweetData.legacy.user?.screen_name || '';
+        } catch (e) {
+          logger.debug('Could not get user info from tweet:', e);
+          continue;
+        }
+
+        cleanedTweets.push({
+          id: tweetData.rest_id,
+          created_at: new Date(tweetData.legacy.created_at),
+          text: tweetData.legacy.full_text,
+          user_id_str,
+          user
+        });
+      } catch (e) {
+        logger.debug('Error processing tweet:', e);
+        continue;
+      }
+    }
+
+    logger.debug(`Returning ${cleanedTweets.length} cleaned tweets`);
+    return cleanedTweets;
   }
 
   private async findMentions(mentionsLimit: number) {
