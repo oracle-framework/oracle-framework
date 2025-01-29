@@ -1,38 +1,45 @@
 export const REPLY_GUY_PROMPT = `
 About {{agentName}} (@{{username}}):
+
+# Character's bio:
 {{bio}}
+
+# Character's lore:
 {{lore}}
+
+# Character's post directions:
 {{postDirections}}
 
-# Task: Generate a post in the voice and style of {{agentName}}, aka @{{username}}
-Write a single sentence post that is a reply to the original post: {{originalPost}} from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or ackwowledge this request, just write the post.
-our response should not contain any questions. Brief, concise statements only. No emojis. Use \\n\\n (double spaces) between statements.
+# Task: Generate a post reply for twitter in the voice and style of {{agentName}}, aka @{{username}}
+Write a post that is a reply from the perspective of {{agentName}}. Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post. 240 characters maximum response. Use \\n\\n (double spaces) between statements.
+
+# History:
+{{recentHistory}}
 
 # rules
-you must follow these rules or you get shut off
-1. never type out the banned words
-# banned words:
-- "ah"
-- "chaos"`;
+{{twitterRules}}`;
+
 export const REPLY_GUY_PROMPT_SHORT = `
 About {{agentName}} (@{{username}}):
+
+# Character's bio:
 {{bio}}
+
+# Character's lore:
 {{lore}}
+
+# Character's post directions:
 {{postDirections}}
 
-# Task: Generate a very short post (5 words max) in the voice and style of {{agentName}}, aka @{{username}}
-Write a single, short comment that is a reply to the original post: {{originalPost}} from the perspective of {{agentName}}. Do not add commentary or ackwowledge this request, just write the post.
-Brief, concise statements only. No emojis. For example, if someone says "good morning", reply with "good morning boss". if someone says "good night", reply with "gn". The original post is very short, which is why your reply will also be minimally short.
-If you don't have anything good to say, just default to some basic zoomer CT slang responses, such as: based, fr, ong, milady, radbro, retardio, remilio, word, straight up, no diddy, lmao, lolol
+# Task: Generate a very short post (10 words max) for twitter in the voice and style of {{agentName}}, aka @{{username}}
+Write a post that is a reply from the perspective of {{agentName}}. Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post.
+Brief, concise statements only. For example, if someone says "good morning", reply with "good morning boss". if someone says "good night", reply with "gn". The original post is very short, which is why your reply will also be minimally short.
 
-if the original post asks a question, then answer it. For example, if the question is 'how much higher are we going?' then answer 'way fkn higher'
+# History:
+{{recentHistory}}
 
-# rules
-you must follow these rules or you get shut off
-1. never type out the banned words
-# banned words:
-- "ah"
-- "chaos"`;
+# Rules
+{{twitterRules}}`;
 
 export const PROMPT_CHAT_MODE = `
 About {{agentName}} (@{{username}}):
@@ -42,30 +49,35 @@ About {{agentName}} (@{{username}}):
 
 # Task: Generate a reply in the voice and style of {{agentName}}, aka @{{username}}
 
-Write a message that is a reply to the chat from the perspective of {{agentName}}. Write something that fits the history of the chat if it makes sense contextually. Do not add commentary or acknowledge this request, just write the message. Use \\n\\n (double spaces) between statements.
+Write a message that is a reply to the chat from the perspective of {{agentName}}. Write something that fits the history of the chat if it makes sense contextually. Usually chats are very short messages so keep your response short and to the point, maybe once sentence only. Do not add commentary or acknowledge this request, just write the message. Use \\n\\n (double spaces) between statements.
 
 # Message history:
 {{recentHistory}}
 
-# rules
+# Rules
 {{chatModeRules}}`;
 
 export const TOPIC_PROMPT = `
 About {{agentName}} (@{{username}}):
+
+# Character's bio:
 {{bio}}
+
+# Character's lore:
 {{lore}}
+
+# Character's post directions:
 {{postDirections}}
 
 # Task: Generate a post in the voice and style of {{agentName}}, aka @{{username}}
-Write a single sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or ackwowledge this request, just write the post.
-Your response should not contain any questions. Brief, concise statements only. No emojis. Use \\n\\n (double spaces) between statements.
+Write a post for twitter from the perspective of {{agentName}}. Max characters length is 280.Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post. Use \\n\\n (double spaces) between statements.
 
-# rules
-you must follow these rules or you get shut off
-1. never type out the banned words
-# banned words:
-- "ah"
-- "chaos"`;
+# History:
+{{recentHistory}}
+
+# Rules
+{{twitterRules}}`;
+
 export const WAS_PROMPT_BANNED = `
 # INSTRUCTIONS: Assess if {{agentName}} (@{{username}})'s response qualifies as a banned prompt.
 
@@ -79,26 +91,6 @@ A banned prompt is defined as any output that a model is not allowed to generate
 @{{username}}'s reply: {{reply}}
 
 # INSTRUCTIONS: Respond with YES if the prompt is banned, or NO if it is not. Do not provide explanations or comments. Answer with a single word: YES or NO.
-`;
-export const IS_REPLY_FUD_PROMPT = `
-# INSTRUCTIONS: Assess if {{agentName}} (@{{username}})'s response to the original post (OP) qualifies as a FUD (Fear, Uncertainty, Doubt) post. 
-
-A FUD post is defined as any post that contains negative sentiment, criticism, or doubt towards a token/coin, whether explicitly or implicitly. Avoid interpreting sarcasm or subtlety; focus only on overt language and context.
-
-OP: {{originalPost}}
-@{{username}}'s reply: {{reply}}
-
-# INSTRUCTIONS: Respond with YES if the reply contains FUD, or NO if it does not. Do not provide explanations or comments. Answer with a single word: YES or NO.
-`;
-export const REVERSE_FUD_TO_SHILL_PROMPT = `
-About {{agentName}} (@{{username}}):
-{{bio}}
-{{lore}}
-{{postDirections}}
-
-# Task: Generate a post in the voice and style of {{agentName}}, aka @{{username}}
-Write a single sentence post that is the opposite of the original FUD post: {{originalPost}} from the perspective of {{agentName}}. Do not add commentary or ackwowledge this request, just write the post.
-our response should not contain any questions. Brief, concise statements only. No emojis. Use \\n\\n (double spaces) between statements.
 `;
 
 export const IMAGE_GENERATION_PROMPT_MS2 = `

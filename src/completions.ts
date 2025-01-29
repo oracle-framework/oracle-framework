@@ -4,11 +4,9 @@ import { Character } from "./characters";
 import { logger } from "./logger";
 import {
   IMAGE_GENERATION_PROMPT_MS2,
-  IS_REPLY_FUD_PROMPT,
   REPLY_GUY_PROMPT,
   REPLY_GUY_PROMPT_SHORT,
   PROMPT_CHAT_MODE,
-  REVERSE_FUD_TO_SHILL_PROMPT,
   TOPIC_PROMPT,
   WAS_PROMPT_BANNED,
 } from "./prompts";
@@ -186,7 +184,6 @@ export const handleBannedAndLengthRetries = async (
 // if inputTweet.length <= 20, use REPLY_GUY_PROMPT_SHORT
 // if character.removePeriods, then remove periods
 // if character.onlyKeepFirstSentence, then only keep first sentence
-// After generating a reply, determine if the reply is fudding a token. If so, shill the token instead.
 export const generateReply = async (
   inputMessage: string,
   character: Character,
@@ -194,21 +191,11 @@ export const generateReply = async (
   recentHistory?: string,
 ) => {
   try {
-    if (isChatMode) {
-      forceCharacterToReplyOneLiners(character);
-    }
-
     const context = {
       agentName: character.agentName,
       username: character.username,
-      bio: character.bio
-        //.sort(() => Math.random() - 0.5)
-        //.slice(0, 3)
-        .join("\n"),
-      lore: character.lore
-        //.sort(() => Math.random() - 0.5)
-        //.slice(0, 3)
-        .join("\n"),
+      bio: character.bio.join("\n"),
+      lore: character.lore.join("\n"),
       postDirections: character.postDirections.join("\n"),
       originalPost: inputMessage,
       knowledge: character.knowledge || "",
@@ -216,7 +203,11 @@ export const generateReply = async (
       recentHistory: recentHistory || "",
     };
 
+    console.log(character.knowledge);
+
     const prompt = generatePrompt(context, isChatMode, inputMessage.length);
+
+    console.log(prompt);
 
     let reply = await generateCompletionForCharacter(
       prompt,
@@ -224,6 +215,8 @@ export const generateReply = async (
       isChatMode,
       inputMessage,
     );
+
+    console.log(reply);
 
     // Add ban/length handling
     if (!isChatMode) {
@@ -236,10 +229,6 @@ export const generateReply = async (
       );
     }
 
-    if (!isChatMode) {
-      reply = await checkAndReverseFud(reply, context, inputMessage, character);
-    }
-
     reply = formatReply(reply, character);
     return { prompt, reply };
   } catch (error) {
@@ -248,7 +237,10 @@ export const generateReply = async (
   }
 };
 
-export const generateTopicPost = async (character: Character) => {
+export const generateTopicPost = async (
+  character: Character,
+  recentHistory: string,
+) => {
   const topic = character
     .topics!.sort(() => Math.random() - 0.5)
     .slice(0, 1)[0];
@@ -258,23 +250,22 @@ export const generateTopicPost = async (character: Character) => {
   const context = {
     agentName: character.agentName,
     username: character.username,
-    bio: character.bio
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-      .join("\n"),
-    lore: character.lore
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-      .join("\n"),
+    bio: character.bio.join("\n"),
+    lore: character.lore.join("\n"),
     postDirections: character.postDirections.join("\n"),
-    topic,
-    adjective,
+    recentHistory: recentHistory || "",
   };
 
-  let prompt = replaceTemplateVariables(TOPIC_PROMPT, context);
-  let reply = await generateCompletionForCharacter(prompt, character);
+  const userPrompt = `Generate a post that is ${adjective} about ${topic}`;
 
-  // Replace existing retry logic with new handler
+  let prompt = replaceTemplateVariables(TOPIC_PROMPT, context);
+  let reply = await generateCompletionForCharacter(
+    prompt,
+    character,
+    false,
+    userPrompt,
+  );
+
   reply = await handleBannedAndLengthRetries(prompt, reply, character, 280, 3);
   reply = reply.replace(/\\n/g, "\n");
 
@@ -319,51 +310,3 @@ function replaceTemplateVariables(
 ) {
   return template.replace(/{{(\w+)}}/g, (_, key) => variables[key] || "");
 }
-
-function forceCharacterToReplyOneLiners(character: Character) {
-  character.postingBehavior.onlyKeepFirstSentence = true;
-  character.postingBehavior.removePeriods = true;
-}
-
-const checkAndReverseFud = async (
-  reply: string,
-  context: PromptContext,
-  inputTweet: string,
-  character: Character,
-) => {
-  const fudContext = {
-    agentName: context.agentName,
-    username: context.username,
-    originalPost: inputTweet,
-    reply,
-  };
-
-  const fudPrompt = replaceTemplateVariables(IS_REPLY_FUD_PROMPT, fudContext);
-  let isFudContent = await generateCompletionForCharacter(fudPrompt, character);
-
-  if (isFudContent !== "YES") return reply;
-
-  context.originalPost = reply;
-  const reverseFudPrompt = replaceTemplateVariables(
-    REVERSE_FUD_TO_SHILL_PROMPT,
-    context,
-  );
-  logger.info({ reverseFudPrompt });
-
-  let reverseFudContent = await generateCompletionForCharacter(
-    reverseFudPrompt,
-    character,
-  );
-  // Check for banned prompts in the reversed FUD content
-  reverseFudContent = await handleBannedAndLengthRetries(
-    reverseFudPrompt,
-    reverseFudContent,
-    character,
-  );
-
-  logger.info(
-    `<b>FUD FOUND</b>:\n\n original reply: '${reply}'\n\n New reply: '${reverseFudContent}'`,
-  );
-
-  return reverseFudContent;
-};

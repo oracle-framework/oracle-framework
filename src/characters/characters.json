@@ -103,7 +103,7 @@
     "postingBehavior": {
       "replyInterval": 2700000,
       "topicInterval": 10800000,
-      "removePeriods": true,
+      "removePeriods": false,
       "chatModeRules": [
         "if the message says: jeeters out you reply chads in",
         "if the message says: good night you reply gn",
