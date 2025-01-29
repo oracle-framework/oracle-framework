@@ -191,10 +191,6 @@ export const generateReply = async (
   recentHistory?: string,
 ) => {
   try {
-    if (isChatMode) {
-      forceCharacterToReplyOneLiners(character);
-    }
-
     const context = {
       agentName: character.agentName,
       username: character.username,
@@ -207,7 +203,11 @@ export const generateReply = async (
       recentHistory: recentHistory || "",
     };
 
+    console.log(character.knowledge);
+
     const prompt = generatePrompt(context, isChatMode, inputMessage.length);
+
+    console.log(prompt);
 
     let reply = await generateCompletionForCharacter(
       prompt,
@@ -215,6 +215,8 @@ export const generateReply = async (
       isChatMode,
       inputMessage,
     );
+
+    console.log(reply);
 
     // Add ban/length handling
     if (!isChatMode) {
@@ -307,9 +309,4 @@ function replaceTemplateVariables(
   variables: Record<string, string>,
 ) {
   return template.replace(/{{(\w+)}}/g, (_, key) => variables[key] || "");
-}
-
-function forceCharacterToReplyOneLiners(character: Character) {
-  character.postingBehavior.onlyKeepFirstSentence = true;
-  character.postingBehavior.removePeriods = true;
 }
