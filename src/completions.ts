@@ -236,7 +236,7 @@ export const generateReply = async (
       );
     }
 
-    if (!isChatMode) {
+    if (false) {
       reply = await checkAndReverseFud(reply, context, inputMessage, character);
     }
 
