@@ -2,26 +2,34 @@ import { Database } from "better-sqlite3";
 
 // Create tables if they don't exist
 export const initializeSchema = (db: Database) => {
-  // Twitter History Table
-  db.exec(`
-    DROP TABLE IF EXISTS twitter_history;
-    
-    CREATE TABLE twitter_history (
-      twitter_user_id TEXT NOT NULL,
-      tweet_id TEXT NOT NULL,
-      tweet_text TEXT NOT NULL,
-      created_at DATETIME NOT NULL,
-      is_bot_tweet INTEGER NOT NULL DEFAULT 0,
-      conversation_id TEXT,
-      prompt TEXT,
-      username TEXT
-    );
+  // Check if twitter_history table exists
+  const tableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='twitter_history'",
+    )
+    .get();
 
-    CREATE INDEX IF NOT EXISTS idx_twitter_history_user_id ON twitter_history(twitter_user_id);
-    CREATE INDEX IF NOT EXISTS idx_twitter_history_conversation ON twitter_history(conversation_id);
-    CREATE INDEX IF NOT EXISTS idx_twitter_history_created_at ON twitter_history(created_at);
-    CREATE INDEX IF NOT EXISTS idx_twitter_history_tweet_id ON twitter_history(tweet_id);
-  `);
+  if (!tableExists) {
+    // Twitter History Table
+    db.exec(`
+      CREATE TABLE twitter_history (
+        twitter_user_id TEXT NOT NULL,
+        tweet_id TEXT NOT NULL,
+        tweet_text TEXT NOT NULL,
+        created_at DATETIME NOT NULL,
+        is_bot_tweet INTEGER NOT NULL DEFAULT 0,
+        conversation_id TEXT,
+        prompt TEXT,
+        username TEXT,
+        input_tweet_id TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_user_id ON twitter_history(twitter_user_id);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_conversation ON twitter_history(conversation_id);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_created_at ON twitter_history(created_at);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_tweet_id ON twitter_history(tweet_id);
+    `);
+  }
 
   migrateTweetsToHistory(db);
   migrateSchema(db);
@@ -128,14 +136,16 @@ export const migrateSchema = (db: Database) => {
   const twitterHistoryInfo = db
     .prepare("PRAGMA table_info(twitter_history)")
     .all() as any[];
-  const hasInputTweetId = twitterHistoryInfo.some(col => col.name === "input_tweet_id");
+  const hasInputTweetId = twitterHistoryInfo.some(
+    col => col.name === "input_tweet_id",
+  );
 
   if (!hasInputTweetId) {
     db.exec(`
       ALTER TABLE twitter_history 
       ADD COLUMN input_tweet_id TEXT;
     `);
-    
+
     // Update existing records to set input_tweet_id based on conversation_id
     db.exec(`
       UPDATE twitter_history

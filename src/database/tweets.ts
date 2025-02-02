@@ -2,7 +2,7 @@ import { Tweet } from "../socialmedia/types";
 import { logger } from "../logger";
 import { db } from "../database";
 
-export const insertTweet = (username: string, tweet: Tweet): void => {
+export const saveTweet = (username: string, tweet: Tweet): void => {
   try {
     logger.debug("Inserting tweet:", { username, tweet });
 
@@ -83,18 +83,18 @@ export const insertTweet = (username: string, tweet: Tweet): void => {
 export const getTweetByInputTweetId = (id: string): Tweet | undefined => {
   try {
     logger.debug(`Checking for tweet ID: ${id}`);
-    
+
     const stmt = db.prepare(`
       SELECT * FROM twitter_history 
       WHERE input_tweet_id = ?
       LIMIT 1
     `);
     const tweet = stmt.get(id) as TwitterHistory;
-    
-    logger.debug('Query result:', JSON.stringify(tweet, null, 2));
-    
+
+    logger.debug("Query result:", JSON.stringify(tweet, null, 2));
+
     if (!tweet) {
-      logger.debug('No tweet found');
+      logger.debug("No tweet found");
       return undefined;
     }
 
@@ -335,7 +335,9 @@ export const getUserInteractionCount = (
            ))
          )`,
       )
-      .get(botUsername, cutoff, twitterUserId, twitterUserId) as { interaction_count: number };
+      .get(botUsername, cutoff, twitterUserId, twitterUserId) as {
+      interaction_count: number;
+    };
 
     return result.interaction_count;
   } catch (e) {

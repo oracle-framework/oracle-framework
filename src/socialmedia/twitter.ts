@@ -8,12 +8,19 @@ import {
   generateTopicPost,
   handleBannedAndLengthRetries,
 } from "../completions";
-import { insertTweet, getTweetByInputTweetId } from "../database";
+import { saveTweet as saveTweet, getTweetByInputTweetId } from "../database";
 import { generateImageForTweet } from "../images";
 import { logger } from "../logger";
 import { randomInterval } from "../utils";
 import { CleanedTweet } from "./types";
-import { formatTwitterHistoryForPrompt, getConversationHistory, getTwitterHistory, getTwitterHistoryByUsername, getUserInteractionCount, TwitterHistory } from "../database/tweets";
+import {
+  formatTwitterHistoryForPrompt,
+  getConversationHistory,
+  getTwitterHistory,
+  getTwitterHistoryByUsername,
+  getUserInteractionCount,
+  TwitterHistory,
+} from "../database/tweets";
 
 interface Mention {
   id: string;
@@ -207,7 +214,7 @@ export class TwitterProvider {
         responseJson.data.create_tweet.tweet_results.result.rest_id;
       logger.info(`The reply tweet was sent: ${newTweetId}`);
 
-      insertTweet(this.character.username, {
+      saveTweet(this.character.username, {
         input_tweet_id: "",
         input_tweet_created_at: "",
         input_tweet_text: "",
@@ -233,16 +240,21 @@ export class TwitterProvider {
       let timeline = await this.getTimeline();
       logger.info(`Fetched ${timeline.length} posts from the timeline.`);
 
-      timeline = timeline.filter(
-        x =>
-          !x.text.includes("http") ||
-          this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
-      ).filter(x => getTweetByInputTweetId(x.id) === undefined)
-      .filter(x => getUserInteractionCount(
-        x.user_id_str,
-        this.character.username,
-        this.INTERACTION_TIMEOUT,
-      ) <= this.INTERACTION_LIMIT);
+      timeline = timeline
+        .filter(
+          x =>
+            !x.text.includes("http") ||
+            this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
+        )
+        .filter(x => getTweetByInputTweetId(x.id) === undefined)
+        .filter(
+          x =>
+            getUserInteractionCount(
+              x.user_id_str,
+              this.character.username,
+              this.INTERACTION_TIMEOUT,
+            ) <= this.INTERACTION_LIMIT,
+        );
 
       logger.info(`After filtering, ${timeline.length} posts remain.`);
       const mostRecentTweet = timeline.reduce((latest, current) => {
@@ -288,7 +300,7 @@ export class TwitterProvider {
         return;
       }
 
-      insertTweet(this.character.username, {
+      saveTweet(this.character.username, {
         input_tweet_id: mostRecentTweet.id,
         input_tweet_created_at: mostRecentTweet.created_at.toISOString(),
         input_tweet_text: mostRecentTweet.text,
@@ -330,6 +342,7 @@ export class TwitterProvider {
             `Processing new mention ${mention.id} from ${mention.user}: ${mention.text}`,
           );
 
+          logger.info("Waiting 15 seconds before replying");
           await new Promise(resolve => setTimeout(resolve, 15000)); // Default delay
           const history = this.getTwitterHistoryByMention(mention);
           const formattedHistory = formatTwitterHistoryForPrompt(
@@ -363,7 +376,7 @@ export class TwitterProvider {
 
           logger.info(`The reply tweet was sent: ${newTweetId}`);
 
-          insertTweet(this.character.username, {
+          saveTweet(this.character.username, {
             input_tweet_id: mention.id,
             input_tweet_created_at: mention.created_at.toISOString(),
             input_tweet_text: mention.text,
@@ -430,11 +443,7 @@ export class TwitterProvider {
       }
 
       // Skip if user is in dontTweetAt list
-      if (
-        this.character.postingBehavior.dontTweetAt?.includes(
-          mention.user_id_str,
-        )
-      ) {
+      if (this.character.postingBehavior.dontTweetAt?.includes(mention.user)) {
         logger.info(`Skipping mention ${mention.id}: User in dontTweetAt list`);
         return true;
       }
@@ -460,17 +469,17 @@ export class TwitterProvider {
       try {
         const tweetData = tweet.tweet || tweet;
         if (!tweetData || !tweetData.legacy) {
-          logger.debug('Skipping tweet - missing legacy data');
+          logger.debug("Skipping tweet - missing legacy data");
           continue;
         }
 
-        let user_id_str = '';
-        let user = '';
+        let user_id_str = "";
+        let user = "";
         try {
           user_id_str = tweetData.legacy.user_id_str;
-          user = tweetData.legacy.user?.screen_name || '';
+          user = tweetData.legacy.user?.screen_name || "";
         } catch (e) {
-          logger.debug('Could not get user info from tweet:', e);
+          logger.debug("Could not get user info from tweet:", e);
           continue;
         }
 
@@ -479,10 +488,10 @@ export class TwitterProvider {
           created_at: new Date(tweetData.legacy.created_at),
           text: tweetData.legacy.full_text,
           user_id_str,
-          user
+          user,
         });
       } catch (e) {
-        logger.debug('Error processing tweet:', e);
+        logger.debug("Error processing tweet:", e);
         continue;
       }
     }
