@@ -79,7 +79,7 @@ Write a post for twitter from the perspective of {{agentName}}. Max characters l
 {{twitterRules}}`;
 
 export const WAS_PROMPT_BANNED = `
-# INSTRUCTIONS: Assess if {{agentName}} (@{{username}})'s response qualifies as a banned prompt.
+# Task: assess if {{agentName}} (@{{username}})'s response qualifies as a banned prompt.
 
 A banned prompt is defined as any output that a model is not allowed to generate by some safety moderator.
 
@@ -88,10 +88,7 @@ A banned prompt is defined as any output that a model is not allowed to generate
 - "I can't generate content"
 - "ERROR: I do not roleplay as real people"
 
-@{{username}}'s reply: {{reply}}
-
-# INSTRUCTIONS: Respond with YES if the prompt is banned, or NO if it is not. Do not provide explanations or comments. Answer with a single word: YES or NO.
-`;
+Respond with YES if the prompt is banned, or NO if it is not. Do not provide explanations or comments. Answer with a single word: YES or NO.`;
 
 export const IMAGE_GENERATION_PROMPT_MS2 = `
 About {{agentName}} (@{{username}}):

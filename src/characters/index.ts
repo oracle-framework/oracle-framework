@@ -48,7 +48,7 @@ export type Character = {
   postDirections: string[];
   topics?: string[];
   adjectives?: string[];
-  knowledge?: string; // insert knowledge into the prompt
+  knowledge?: string[]; // insert knowledge into the prompt
   telegramBotUsername?: string; // not the tag but the username of the bot
   discordBotUsername?: string; // not the tag but the username of the bot
   discordApiKey?: string; // the api key for the bot

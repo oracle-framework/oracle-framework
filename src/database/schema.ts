@@ -30,4 +30,3 @@ export const initializeSchema = (db: Database) => {
     `);
   }
 };
-

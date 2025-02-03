@@ -270,7 +270,7 @@ export class TwitterProvider {
         `The most recent tweet was ${mostRecentTweetMinutesAgo} minutes ago.`,
       );
 
-      const history = getTwitterHistory(this.character.username, 10);
+      const history = getTwitterHistoryByUsername(this.character.username, 10);
 
       const historyByUser = getTwitterHistory(mostRecentTweet.user_id_str, 10);
 

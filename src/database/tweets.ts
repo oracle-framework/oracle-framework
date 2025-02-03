@@ -4,7 +4,7 @@ import { db } from "../database";
 
 export const saveTweet = (username: string, tweet: Tweet): void => {
   try {
-    logger.debug("Inserting tweet:", { username, tweet });
+    logger.debug({ username, tweet }, "Inserting tweet");
 
     if (!username || !tweet.new_tweet_id || !tweet.new_tweet_text) {
       throw new Error(
@@ -91,7 +91,7 @@ export const getTweetByInputTweetId = (id: string): Tweet | undefined => {
     `);
     const tweet = stmt.get(id) as TwitterHistory;
 
-    logger.debug("Query result:", JSON.stringify(tweet, null, 2));
+    logger.debug({ tweet }, "Query result");
 
     if (!tweet) {
       logger.debug("No tweet found");
