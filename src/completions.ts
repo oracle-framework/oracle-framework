@@ -69,7 +69,7 @@ export async function generateImagePromptForCharacter(
         bio: character.bio.join("\n"),
         lore: character.lore.join("\n"),
         postDirections: character.postDirections.join("\n"),
-        knowledge: character.knowledge || "",
+        knowledge: character.knowledge?.join("\n") || "",
         originalPost: prompt,
         username: character.username,
       });
@@ -113,6 +113,7 @@ const generateCompletionForCharacter = async (
   }
   // TODO: change this once we use userPrompt everywhere
   if (userPrompt) {
+    logger.debug({ userPrompt }, "userPrompt");
     const completion = await openai.chat.completions.create({
       model: model,
       messages: [
@@ -123,8 +124,10 @@ const generateCompletionForCharacter = async (
       temperature: character.temperature,
     });
 
-    if (!completion.choices[0]?.message?.content) {
-      throw new Error("No completion content received from API");
+    if (!completion.choices?.[0]?.message?.content) {
+      throw new Error(
+        `No content in API response: ${JSON.stringify(completion)}`,
+      );
     }
 
     return completion.choices[0].message.content;
@@ -137,8 +140,10 @@ const generateCompletionForCharacter = async (
     temperature: character.temperature,
   });
 
-  if (!completion.choices[0]?.message?.content) {
-    throw new Error("No completion content received from API");
+  if (!completion.choices?.[0]?.message?.content) {
+    throw new Error(
+      `No content in API response: ${JSON.stringify(completion)}`,
+    );
   }
 
   return completion.choices[0].message.content;
@@ -146,12 +151,13 @@ const generateCompletionForCharacter = async (
 
 export const handleBannedAndLengthRetries = async (
   prompt: string,
-  reply: string,
+  generatedReply: string,
   character: Character,
   maxLength: number = 280,
   banThreshold: number = 3,
+  inputMessage?: string,
 ) => {
-  let currentReply = reply;
+  let currentReply = generatedReply;
   let banCount = 0;
   let wasBanned = await checkIfPromptWasBanned(currentReply, character);
 
@@ -165,7 +171,12 @@ export const handleBannedAndLengthRetries = async (
         logger.info("Switching to fallback model:", character.fallbackModel);
         const originalModel = character.model;
         character.model = character.fallbackModel;
-        currentReply = await generateCompletionForCharacter(prompt, character);
+        currentReply = await generateCompletionForCharacter(
+          prompt,
+          character,
+          false,
+          inputMessage,
+        );
         character.model = originalModel; // Restore original model
         break;
       }
@@ -173,7 +184,12 @@ export const handleBannedAndLengthRetries = async (
       logger.info(`The content was too long (>${maxLength})! Going again.`);
     }
 
-    currentReply = await generateCompletionForCharacter(prompt, character);
+    currentReply = await generateCompletionForCharacter(
+      prompt,
+      character,
+      false,
+      inputMessage,
+    );
     wasBanned = await checkIfPromptWasBanned(currentReply, character);
   }
 
@@ -198,16 +214,14 @@ export const generateReply = async (
       lore: character.lore.join("\n"),
       postDirections: character.postDirections.join("\n"),
       originalPost: inputMessage,
-      knowledge: character.knowledge || "",
+      knowledge: character.knowledge?.join("\n") || "",
       chatModeRules: character.postingBehavior.chatModeRules?.join("\n") || "",
       recentHistory: recentHistory || "",
     };
 
-    console.log(character.knowledge);
-
     const prompt = generatePrompt(context, isChatMode, inputMessage.length);
 
-    console.log(prompt);
+    logger.debug(prompt);
 
     let reply = await generateCompletionForCharacter(
       prompt,
@@ -216,7 +230,7 @@ export const generateReply = async (
       inputMessage,
     );
 
-    console.log(reply);
+    logger.debug(reply);
 
     // Add ban/length handling
     if (!isChatMode) {
@@ -278,12 +292,13 @@ const checkIfPromptWasBanned = async (reply: string, character: Character) => {
   const context = {
     agentName: character.agentName,
     username: character.username,
-    reply,
   };
   const banCheckPrompt = replaceTemplateVariables(WAS_PROMPT_BANNED, context);
   const result = await generateCompletionForCharacter(
     banCheckPrompt,
     character,
+    false,
+    reply,
   );
   return result.trim().toUpperCase() === "YES";
 };

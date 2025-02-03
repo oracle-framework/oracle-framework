@@ -1,91 +1,60 @@
 import { resolve } from "path";
 import pino from "pino";
-import rotate from "pino-roll";
+import fs from "fs";
 
+// Check environment
 const isDevelopment = process.env["NODE_ENV"] !== "production";
 
-// Base logger configuration
-const baseConfig = {
+// Log file path
+const logFilePath = resolve("./logs/app.log");
+
+// Ensure logs directory exists in production
+if (!isDevelopment) {
+  fs.mkdirSync(resolve("./logs"), { recursive: true });
+}
+
+// Base config
+const baseLogger = pino({
   level: process.env["LOG_LEVEL"] || "info",
   timestamp: pino.stdTimeFunctions.isoTime,
-  formatters: {
-    level: (label: string) => {
-      return { level: label.toUpperCase() };
-    },
-  },
-};
+});
 
-// Development configuration with pretty printing
-const developmentConfig = {
-  ...baseConfig,
-  transport: {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      translateTime: "HH:MM:ss Z",
-      ignore: "pid,hostname",
-    },
-  },
-};
+// Fix: Ensure pretty logging in development
+const logger = isDevelopment
+  ? pino({
+      level: process.env["LOG_LEVEL"] || "info",
+      transport: {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "HH:MM:ss",
+          ignore: "pid,hostname",
+        },
+      },
+    })
+  : pino(
+      baseLogger,
+      pino.destination({
+        dest: logFilePath,
+        mkdir: true,
+        sync: false,
+      })
+    );
 
-// Production configuration with file output
-const productionConfig = {
-  ...baseConfig,
-  transport: {
-    target: "pino/file",
-    options: { destination: resolve("./logs/app.log") },
-  },
-};
-
-// Create logger with appropriate config
-export const logger = pino(
-  isDevelopment ? developmentConfig : productionConfig,
-);
-
-// Only set up rotation in production
+// Production: Add log rotation
 if (!isDevelopment) {
-  rotate(resolve("./logs/app.log"), {
-    size: "10m",
-    interval: "1d",
-    compress: true,
-    maxFiles: 5,
-    mkdir: true,
-    dateFormat: "YYYY-MM-DD",
-    nameFormat: "app.log.%DATE%",
+  import("pino-roll").then(({ default: rotate }) => {
+    rotate(logFilePath, {
+      size: "10m",
+      interval: "1d",
+      compress: true,
+      maxFiles: 7,
+      mkdir: true,
+      dateFormat: "YYYY-MM-DD",
+      nameFormat: "app.log.%DATE%",
+    });
   });
 }
 
-// Add convenience methods for common logging patterns
-export const logError = (error: Error, context: Record<string, any> = {}) => {
-  logger.error(
-    {
-      err: error,
-      ...context,
-      stack: error.stack,
-    },
-    error.message,
-  );
-};
-
-export const logRequest = (method: string, url: string, duration: number) => {
-  logger.info(
-    {
-      type: "request",
-      method,
-      url,
-      duration_ms: duration,
-    },
-    `${method} ${url}`,
-  );
-};
-
-export const logInfo = (message: string, context: Record<string, any> = {}) => {
-  logger.info(context, message);
-};
-
-export const logDebug = (
-  message: string,
-  context: Record<string, any> = {},
-) => {
-  logger.debug(context, message);
-};
+// Named export so your existing imports don't break
+export { logger };
