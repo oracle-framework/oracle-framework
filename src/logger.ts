@@ -38,7 +38,7 @@ const logger = isDevelopment
         dest: logFilePath,
         mkdir: true,
         sync: false,
-      })
+      }),
     );
 
 // Production: Add log rotation
