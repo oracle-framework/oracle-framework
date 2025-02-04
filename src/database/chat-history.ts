@@ -69,7 +69,7 @@ export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
         ? options.channelId
         : options.sessionId;
 
-  const query = `
+  let query = `
     SELECT * FROM chat_messages 
     WHERE platform = ? AND (
       CASE 
@@ -77,18 +77,18 @@ export const getLastMessages = (options: GetMessagesOptions): ChatMessage[] => {
         WHEN platform = 'discord' THEN platform_channel_id = ?
         ELSE session_id = ?
       END
-    )
-    ORDER BY created_at DESC 
-    LIMIT ?
-  `;
+    )`;
 
-  const params = [
-    options.platform,
-    platformId,
-    platformId,
-    platformId,
-    options.limit || 10,
-  ];
+  const params = [options.platform, platformId, platformId, platformId];
+
+  // Add user_id filter if provided
+  if (options.userId) {
+    query += ` AND (platform_user_id = ? OR is_bot_response = 1)`;
+    params.push(options.userId);
+  }
+
+  query += ` ORDER BY created_at DESC LIMIT ?`;
+  params.push(String(options.limit || 10));
 
   const results = db.prepare(query).all(...params) as any[];
 
