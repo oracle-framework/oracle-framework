@@ -251,6 +251,12 @@ export const generateReply = async (
   }
 };
 
+/**
+ * Write a "topic post", which is a post on twitter. Will select a random topic
+ * from character.topics.
+ * @param character
+ * @param recentHistory
+ */
 export const generateTopicPost = async (
   character: Character,
   recentHistory: string,
