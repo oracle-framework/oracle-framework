@@ -149,6 +149,17 @@ const generateCompletionForCharacter = async (
   return completion.choices[0].message.content;
 };
 
+/**
+ * Sometimes the LLM completions say that the prompt was banned for inappropriate use.
+ * Retry the prompt <banThreshold> number of times, if still fail, then use
+ * fallback mode.
+ * @param prompt
+ * @param generatedReply
+ * @param character
+ * @param maxLength
+ * @param banThreshold
+ * @param inputMessage
+ */
 export const handleBannedAndLengthRetries = async (
   prompt: string,
   generatedReply: string,
