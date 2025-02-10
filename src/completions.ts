@@ -120,7 +120,7 @@ const generateCompletionForCharacter = async (
         { role: "system", content: prompt },
         { role: "user", content: userPrompt },
       ],
-      max_tokens: MAX_OUTPUT_TOKENS,
+      max_tokens: isChatMode ? 300 : MAX_OUTPUT_TOKENS,
       temperature: character.temperature,
     });
 
@@ -136,7 +136,7 @@ const generateCompletionForCharacter = async (
   const completion = await openai.chat.completions.create({
     model: model,
     messages: [{ role: "user", content: prompt }],
-    max_tokens: MAX_OUTPUT_TOKENS,
+    max_tokens: isChatMode ? 300 : MAX_OUTPUT_TOKENS,
     temperature: character.temperature,
   });
 
