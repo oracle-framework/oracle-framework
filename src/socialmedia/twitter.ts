@@ -237,31 +237,19 @@ export class TwitterProvider {
     );
 
     try {
-      let timeline = await this.getTimeline();
-      logger.info(`Fetched ${timeline.length} posts from the timeline.`);
-
-      timeline = timeline
-        .filter(
-          x =>
-            !x.text.includes("http") ||
-            this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
-        )
-        .filter(x => getTweetByInputTweetId(x.id) === undefined)
-        .filter(
-          x =>
-            getUserInteractionCount(
-              x.user_id_str,
-              this.character.username,
-              this.INTERACTION_TIMEOUT,
-            ) <= this.INTERACTION_LIMIT,
-        );
-
-      logger.info(`After filtering, ${timeline.length} posts remain.`);
-      const mostRecentTweet = timeline.reduce((latest, current) => {
+      const timeline = await this.getTimeline();
+      const filteredTimeline = this.filterTimeline(timeline);
+      logger.info(`After filtering, ${filteredTimeline.length} posts remain.`);
+      const mostRecentTweet = filteredTimeline.reduce((latest, current) => {
         return new Date(current.created_at) > new Date(latest.created_at)
           ? current
           : latest;
-      }, timeline[0]);
+      }, filteredTimeline[0]);
+
+      if (!mostRecentTweet) {
+        logger.error("No most recent tweet found");
+        return;
+      }
 
       const mostRecentTweetMinutesAgo = Math.round(
         (Date.now() - mostRecentTweet.created_at.getTime()) / 1000 / 60,
@@ -315,6 +303,24 @@ export class TwitterProvider {
       logger.error(`There was an error: ${e}`);
       logger.error("e.message", e.message);
     }
+  }
+
+  private filterTimeline(timeline: CleanedTweet[]) {
+    return timeline
+      .filter(
+        x =>
+          !x.text.includes("http") &&
+          !this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
+      )
+      .filter(x => getTweetByInputTweetId(x.id) === undefined)
+      .filter(x => {
+        const interactionCount = getUserInteractionCount(
+          x.user_id_str,
+          this.character.username,
+          this.INTERACTION_TIMEOUT,
+        );
+        return interactionCount < this.INTERACTION_LIMIT;
+      });
   }
 
   private async replyToMentions() {
@@ -468,18 +474,19 @@ export class TwitterProvider {
     for (const tweet of tweets) {
       try {
         const tweetData = tweet.tweet || tweet;
-        if (!tweetData || !tweetData.legacy) {
-          logger.debug("Skipping tweet - missing legacy data");
+        if (
+          !tweetData?.legacy?.full_text ||
+          !tweetData?.legacy?.created_at ||
+          !tweetData?.rest_id
+        ) {
+          logger.debug("Malformed tweet data received");
           continue;
         }
 
-        let user_id_str = "";
-        let user = "";
-        try {
-          user_id_str = tweetData.legacy.user_id_str;
-          user = tweetData.legacy.user?.screen_name || "";
-        } catch (e) {
-          logger.debug("Could not get user info from tweet:", e);
+        let user_id_str = tweetData.legacy.user_id_str;
+        let user = tweetData.legacy.user?.screen_name || "";
+        if (!user_id_str) {
+          logger.debug("Could not get user info from tweet");
           continue;
         }
 

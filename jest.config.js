@@ -13,6 +13,13 @@ module.exports = {
     '/dist/',
     '/__tests__/helpers/',
     '/__tests__/mocks/',
-    '/__tests__/setup/'
-  ]
+    '/__tests__/setup/',
+  ],
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/__tests__/helpers/',
+    '/__tests__/mocks/',
+    '/__tests__/setup/',
+  ],
 }; 

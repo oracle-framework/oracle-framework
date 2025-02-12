@@ -30,6 +30,7 @@
     "format": "prettier --write \"src/**/*.{js,ts,tsx,json}\"",
     "watch": "tsc -w",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "test:watch": "jest --watch"
   }
 }

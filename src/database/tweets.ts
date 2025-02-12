@@ -18,12 +18,14 @@ export const saveTweet = (username: string, tweet: Tweet): void => {
 
     if (tweet.input_tweet_id) {
       if (
+        !tweet.input_tweet_username ||
         !tweet.input_tweet_user_id ||
         !tweet.input_tweet_text ||
         !tweet.input_tweet_created_at
       ) {
         throw new Error(
           `Missing required fields for input tweet: ${JSON.stringify({
+            input_tweet_username: !tweet.input_tweet_username,
             input_tweet_user_id: !tweet.input_tweet_user_id,
             input_tweet_text: !tweet.input_tweet_text,
             input_tweet_created_at: !tweet.input_tweet_created_at,
@@ -33,7 +35,7 @@ export const saveTweet = (username: string, tweet: Tweet): void => {
 
       // Save the original tweet
       saveTwitterHistory({
-        twitter_user_id: tweet.input_tweet_user_id,
+        twitter_user_id: tweet.input_tweet_username,
         tweet_id: tweet.input_tweet_id,
         tweet_text: tweet.input_tweet_text,
         created_at: tweet.input_tweet_created_at,
