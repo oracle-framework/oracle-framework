@@ -9,7 +9,11 @@ import { logger } from "../logger";
 import * as utils from "../utils";
 import { db } from "../database/db";
 import { Database } from "better-sqlite3";
-import { generateReply, generateTopicPost, handleBannedAndLengthRetries } from "../completions";
+import {
+  generateReply,
+  generateTopicPost,
+  handleBannedAndLengthRetries,
+} from "../completions";
 import * as completions from "../completions";
 
 // Mock the logger

@@ -305,7 +305,10 @@ export const generateTopicPost = async (
   return { prompt, reply };
 };
 
-export const checkIfPromptWasBanned = async (reply: string, character: Character) => {
+export const checkIfPromptWasBanned = async (
+  reply: string,
+  character: Character,
+) => {
   const context = {
     agentName: character.agentName,
     username: character.username,
