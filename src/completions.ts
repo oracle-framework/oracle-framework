@@ -305,7 +305,7 @@ export const generateTopicPost = async (
   return { prompt, reply };
 };
 
-export const checkIfPromptWasBanned = async (
+const checkIfPromptWasBanned = async (
   reply: string,
   character: Character,
 ) => {
