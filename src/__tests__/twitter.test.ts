@@ -9,7 +9,8 @@ import { logger } from "../logger";
 import * as utils from "../utils";
 import { db } from "../database/db";
 import { Database } from "better-sqlite3";
-import { generateReply } from "../completions";
+import { generateReply, generateTopicPost, handleBannedAndLengthRetries } from "../completions";
+import * as completions from "../completions";
 
 // Mock the logger
 jest.mock("../logger", () => ({
@@ -27,12 +28,16 @@ jest.mock("../completions", () => ({
     reply: "Test tweet content",
   }),
   generateReply: jest.fn(),
-  handleBannedAndLengthRetries: jest
-    .fn()
-    .mockResolvedValue("Test image prompt"),
+  handleBannedAndLengthRetries: jest.fn().mockImplementation(prompt => prompt),
   generateImagePromptForCharacter: jest
     .fn()
     .mockResolvedValue("Test image prompt"),
+  checkIfPromptWasBanned: jest
+    .fn()
+    .mockResolvedValueOnce(true)
+    .mockResolvedValueOnce(true)
+    .mockResolvedValueOnce(false),
+  generateCompletionForCharacter: jest.fn().mockResolvedValue("safe content"),
 }));
 
 // Mock the images module
@@ -279,6 +284,51 @@ describe("TwitterProvider", () => {
       expect(mockScraper.setCookies).toHaveBeenCalledWith([mockCookies]);
       expect(mockScraper.sendTweet).toHaveBeenCalled();
     });
+
+    it("should handle tweet generation failure", async () => {
+      const { generateTopicPost } = require("../completions");
+      generateTopicPost.mockRejectedValueOnce(new Error("Generation failed"));
+
+      await twitterProvider.startTopicPosts();
+
+      expect(logger.error).toHaveBeenNthCalledWith(
+        1,
+        "There was an error: Error: Generation failed",
+      );
+      expect(logger.error).toHaveBeenNthCalledWith(
+        2,
+        "e.message",
+        "Generation failed",
+      );
+
+      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      expect(savedTweets).toHaveLength(0);
+    });
+
+    it("should handle Twitter API errors gracefully", async () => {
+      const characterWithImages = {
+        ...mockCharacter,
+        postingBehavior: {
+          generateImagePrompt: true,
+          imagePromptChance: 1,
+        },
+      };
+      twitterProvider = new TwitterProvider(characterWithImages);
+
+      mockScraper.sendTweet
+        .mockRejectedValueOnce(new Error("API Error"))
+        .mockRejectedValueOnce(new Error("API Error")); // Mock fallback failure too
+
+      await twitterProvider.startTopicPosts();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error sending tweet with image:",
+        expect.any(Error),
+      );
+
+      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      expect(savedTweets).toHaveLength(0);
+    });
   });
 
   describe("History Formatting", () => {
@@ -440,5 +490,426 @@ describe("TwitterProvider", () => {
 
     // Verify no reply was sent
     expect(mockScraper.sendTweet).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining("User in dontTweetAt list"),
+    );
+  });
+
+  describe("Timeline Generation", () => {
+    it("should handle complete generation failure", async () => {
+      const mockError = new Error("Generation failed completely");
+      (generateTopicPost as jest.Mock).mockRejectedValueOnce(mockError);
+
+      await twitterProvider["generateTimelinePost"]();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "There was an error: Error: Generation failed completely",
+      );
+      expect(mockScraper.sendTweet).not.toHaveBeenCalled();
+    });
+
+    it("should handle tweet text formatting edge cases", async () => {
+      const tweetText = "   Tweet with extra spaces   \n\nand newlines\t\t";
+      (generateTopicPost as jest.Mock).mockResolvedValueOnce({
+        prompt: "Test prompt",
+        reply: tweetText,
+      });
+
+      await twitterProvider["generateTimelinePost"]();
+
+      expect(mockScraper.sendTweet).toHaveBeenCalled();
+    });
+  });
+
+  describe("Timeline Response", () => {
+    it("should handle empty timeline response", async () => {
+      mockScraper.fetchHomeTimeline.mockResolvedValueOnce([]);
+      const timeline = await twitterProvider["getTimeline"]();
+      expect(timeline).toHaveLength(0);
+      expect(logger.debug).toHaveBeenCalledWith("Got 0 tweets from timeline");
+    });
+
+    it("should handle invalid timeline response", async () => {
+      mockScraper.fetchHomeTimeline.mockResolvedValueOnce([]);
+      const timeline = await twitterProvider["getTimeline"]();
+      expect(timeline).toHaveLength(0);
+      expect(logger.debug).toHaveBeenCalledWith("Got 0 tweets from timeline");
+    });
+
+    it("should enforce interaction timeout limits", async () => {
+      const oldTimestamp = new Date(Date.now() - 30 * 60 * 1000).toISOString(); // 30 minutes ago
+
+      // Insert 3 tweets within timeout to hit the limit
+      const stmt = testDb.prepare(`
+        INSERT INTO twitter_history (
+          twitter_user_id, tweet_id, tweet_text, created_at, is_bot_tweet, username
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        "test_user",
+        "tweet1",
+        "test tweet 1",
+        oldTimestamp,
+        1,
+        "other_user",
+      );
+      stmt.run(
+        "test_user",
+        "tweet2",
+        "test tweet 2",
+        oldTimestamp,
+        1,
+        "other_user",
+      );
+      stmt.run(
+        "test_user",
+        "tweet3",
+        "test tweet 3",
+        oldTimestamp,
+        1,
+        "other_user",
+      );
+
+      const mockTweet = {
+        rest_id: "1",
+        legacy: {
+          created_at: oldTimestamp,
+          full_text: "test tweet",
+          user_id_str: "other_user",
+          screen_name: "other_user",
+        },
+      };
+
+      mockScraper.fetchHomeTimeline.mockResolvedValueOnce([mockTweet]);
+      const timeline = await twitterProvider["getTimeline"]();
+      const filteredTimeline = twitterProvider["filterTimeline"](timeline);
+      expect(filteredTimeline).toHaveLength(0);
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("Got 1 tweets from timeline"),
+      );
+    });
+  });
+
+  describe("Timeline Processing", () => {
+    it("should handle malformed tweet data", async () => {
+      const malformedTweets = [
+        { rest_id: "1" }, // Missing legacy
+        {
+          rest_id: "2",
+          legacy: {}, // Missing required fields
+        },
+      ];
+
+      mockScraper.fetchHomeTimeline.mockResolvedValueOnce(malformedTweets);
+
+      const timeline = await twitterProvider["getTimeline"]();
+      expect(timeline).toHaveLength(0);
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining("Malformed tweet data received"),
+      );
+    });
+
+    it("should filter out tweets with links", async () => {
+      const mockTweets = [
+        {
+          rest_id: "1",
+          legacy: {
+            created_at: new Date().toISOString(),
+            full_text: "normal tweet",
+            user_id_str: "123",
+            screen_name: "user1",
+          },
+        },
+        {
+          rest_id: "2",
+          legacy: {
+            created_at: new Date().toISOString(),
+            full_text: "tweet with http://link.com",
+            user_id_str: "456",
+            screen_name: "user2",
+          },
+        },
+      ];
+
+      mockScraper.fetchHomeTimeline.mockResolvedValueOnce(mockTweets);
+
+      const timeline = await twitterProvider["getTimeline"]();
+      const filteredTimeline = twitterProvider["filterTimeline"](timeline);
+      expect(filteredTimeline).toHaveLength(1);
+      expect(filteredTimeline[0].text).toBe("normal tweet");
+    });
+
+    it("should handle tweet formatting edge cases", async () => {
+      const mockTweets = [
+        {
+          rest_id: "1",
+          legacy: {
+            created_at: new Date().toISOString(),
+            full_text: "   tweet with\n\nextra whitespace\t\t",
+            user_id_str: "123",
+            screen_name: "user1",
+          },
+        },
+      ];
+
+      mockScraper.fetchHomeTimeline.mockResolvedValueOnce(mockTweets);
+
+      const timeline = await twitterProvider["getTimeline"]();
+      expect(timeline).toHaveLength(1);
+      expect(timeline[0].text).toBe("   tweet with\n\nextra whitespace\t\t");
+    });
+  });
+
+  describe("Mention Handling", () => {
+    it("should skip mentions with insufficient followers", async () => {
+      const mention = {
+        id: "mention1",
+        userId: "123",
+        text: "@test_user hello",
+        username: "lowfollower",
+        followersCount: 40,
+        timeParsed: new Date(),
+        conversationId: "conv123",
+      };
+
+      mockScraper.searchTweets.mockResolvedValueOnce([mention]);
+      mockScraper.getProfile.mockResolvedValueOnce({ followersCount: 40 });
+
+      const promise = twitterProvider.startReplyingToMentions();
+      await jest.runOnlyPendingTimersAsync();
+      await promise;
+
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining("has less than 50 followers"),
+      );
+      expect(mockScraper.sendTweet).not.toHaveBeenCalled();
+    });
+
+    it("should skip mentions from blocked users", async () => {
+      const blockedCharacter = {
+        ...mockCharacter,
+        postingBehavior: {
+          ...mockCharacter.postingBehavior,
+          dontTweetAt: ["blockeduser"],
+        },
+      };
+
+      const blockedProvider = new TwitterProvider(blockedCharacter);
+
+      const mention = {
+        id: "mention1",
+        userId: "123",
+        text: "@test_user hello",
+        username: "blockeduser",
+        followersCount: 100,
+        timeParsed: new Date(),
+        conversationId: "conv123",
+      };
+
+      mockScraper.searchTweets.mockResolvedValueOnce([mention]);
+      mockScraper.getProfile.mockResolvedValueOnce({ followersCount: 100 });
+
+      const promise = blockedProvider.startReplyingToMentions();
+      await jest.runOnlyPendingTimersAsync();
+      await promise;
+
+      expect(generateReply).not.toHaveBeenCalled();
+      expect(mockScraper.sendTweet).not.toHaveBeenCalled();
+    });
+
+    it("should handle API errors during mention search", async () => {
+      mockScraper.searchTweets.mockRejectedValueOnce(
+        new Error("API Rate limit exceeded"),
+      );
+
+      const promise = twitterProvider.startReplyingToMentions();
+      await jest.runOnlyPendingTimersAsync();
+      await promise;
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error in replyToMentions:",
+        expect.any(Error),
+      );
+      expect(mockScraper.sendTweet).not.toHaveBeenCalled();
+    });
+
+    it("should handle invalid user profile data", async () => {
+      const mention = {
+        id: "mention1",
+        userId: "123",
+        text: "@test_user hello",
+        username: "user123",
+        followersCount: 100,
+        timeParsed: new Date(),
+        conversationId: "conv123",
+      };
+
+      mockScraper.searchTweets.mockResolvedValueOnce([mention]);
+      mockScraper.getProfile.mockRejectedValueOnce(
+        new Error("Invalid user data"),
+      );
+
+      const promise = twitterProvider.startReplyingToMentions();
+      await jest.runOnlyPendingTimersAsync();
+      await promise;
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error in replyToMentions:",
+        expect.any(Error),
+      );
+      expect(mockScraper.sendTweet).not.toHaveBeenCalled();
+    });
+
+    it("should handle complex conversation history", async () => {
+      const conversationId = "complex_conv_123";
+      const mentions = [
+        {
+          id: "mention1",
+          userId: "user1",
+          text: "@test_user start conversation",
+          username: "user1",
+          followersCount: 100,
+          timeParsed: new Date(Date.now() - 3600000), // 1 hour ago
+          conversationId,
+        },
+        {
+          id: "mention2",
+          userId: "user2",
+          text: "@test_user @user1 joining conversation",
+          username: "user2",
+          followersCount: 100,
+          timeParsed: new Date(Date.now() - 1800000), // 30 mins ago
+          conversationId,
+        },
+        {
+          id: "mention3",
+          userId: "user1",
+          text: "@test_user @user2 continuing conversation",
+          username: "user1",
+          followersCount: 100,
+          timeParsed: new Date(),
+          conversationId,
+        },
+      ];
+
+      mockScraper.searchTweets.mockResolvedValueOnce(mentions);
+      mockScraper.getProfile.mockResolvedValue({ followersCount: 100 });
+
+      const promise = twitterProvider.startReplyingToMentions();
+      await jest.runAllTimersAsync();
+      await promise;
+
+      // Should process all mentions in sequence
+      expect(generateReply).toHaveBeenCalledTimes(3);
+      expect(generateReply).toHaveBeenLastCalledWith(
+        "@test_user @user2 continuing conversation",
+        mockCharacter,
+        false,
+        expect.any(String),
+      );
+      expect(mockScraper.sendTweet).toHaveBeenCalledTimes(3);
+    });
+
+    it("should handle rate limit errors gracefully", async () => {
+      const rateLimitError = new Error("Rate limit exceeded");
+      rateLimitError.name = "TwitterApiError";
+      Object.assign(rateLimitError, { code: 88 }); // Twitter rate limit error code
+
+      mockScraper.searchTweets.mockRejectedValueOnce(rateLimitError);
+
+      const promise = twitterProvider.startReplyingToMentions();
+      await jest.runOnlyPendingTimersAsync();
+      await promise;
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error in replyToMentions:",
+        expect.any(Error),
+      );
+      expect(mockScraper.sendTweet).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Image Post Edge Cases", () => {
+    it("should handle multiple retries for image generation", async () => {
+      const characterWithImages = {
+        ...mockCharacter,
+        postingBehavior: {
+          generateImagePrompt: true,
+          imagePromptChance: 1,
+        },
+      };
+      twitterProvider = new TwitterProvider(characterWithImages);
+
+      const { generateImageForTweet } = require("../images");
+      const {
+        generateImagePromptForCharacter,
+        handleBannedAndLengthRetries,
+      } = require("../completions");
+
+      generateImagePromptForCharacter.mockResolvedValue("test prompt");
+
+      generateImageForTweet.mockResolvedValueOnce(
+        Buffer.from("test image data"),
+      );
+
+      const promise = twitterProvider.startTopicPosts();
+      await jest.runOnlyPendingTimersAsync();
+      await promise;
+
+      expect(handleBannedAndLengthRetries).toHaveBeenCalledWith(
+        "test prompt",
+        "test prompt",
+        characterWithImages,
+        1024,
+        3,
+      );
+      expect(handleBannedAndLengthRetries).toHaveBeenCalledTimes(1);
+      expect(generateImageForTweet).toHaveBeenCalledTimes(1);
+      expect(mockScraper.sendTweet).toHaveBeenCalled();
+    });
+
+    it("should handle mixed media post failures", async () => {
+      const characterWithImages = {
+        ...mockCharacter,
+        postingBehavior: {
+          generateImagePrompt: true,
+          imagePromptChance: 1,
+        },
+      };
+      twitterProvider = new TwitterProvider(characterWithImages);
+
+      const { generateImageForTweet } = require("../images");
+      generateImageForTweet.mockResolvedValueOnce(
+        Buffer.from("test image data"),
+      );
+
+      // Mock API error for mixed media post
+      mockScraper.sendTweet
+        .mockRejectedValueOnce(new Error("Media upload failed"))
+        .mockResolvedValueOnce({
+          json: () =>
+            Promise.resolve({
+              data: {
+                create_tweet: {
+                  tweet_results: {
+                    result: {
+                      rest_id: "fallback-text-only-tweet",
+                    },
+                  },
+                },
+              },
+            }),
+        });
+
+      await twitterProvider.startTopicPosts();
+
+      expect(generateImageForTweet).toHaveBeenCalled();
+      expect(mockScraper.sendTweet).toHaveBeenCalledTimes(2);
+      expect(logger.error).toHaveBeenCalledWith(
+        "Error sending tweet with image:",
+        expect.any(Error),
+      );
+    });
   });
 });
