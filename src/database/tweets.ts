@@ -35,7 +35,7 @@ export const saveTweet = (username: string, tweet: Tweet): void => {
 
       // Save the original tweet
       saveTwitterHistory({
-        twitter_user_id: tweet.input_tweet_username,
+        twitter_user_id: tweet.input_tweet_user_id,
         tweet_id: tweet.input_tweet_id,
         tweet_text: tweet.input_tweet_text,
         created_at: tweet.input_tweet_created_at,
