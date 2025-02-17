@@ -270,7 +270,6 @@ export const generateReply = async (
  */
 export const generateTopicPost = async (
   character: Character,
-  recentHistory: string,
 ) => {
   const topic = character
     .topics!.sort(() => Math.random() - 0.5)
@@ -283,8 +282,7 @@ export const generateTopicPost = async (
     username: character.username,
     bio: character.bio.join("\n"),
     lore: character.lore.join("\n"),
-    postDirections: character.postDirections.join("\n"),
-    recentHistory: recentHistory || "",
+    postDirections: character.postDirections.join("\n")
   };
 
   const userPrompt = `Generate a post that is ${adjective} about ${topic}`;
@@ -342,3 +340,28 @@ function replaceTemplateVariables(
 ) {
   return template.replace(/{{(\w+)}}/g, (_, key) => variables[key] || "");
 }
+
+export const generateTweetSummary = async (
+  character: Character,
+  tweetText: string,
+) => {
+  const prompt = `<SYSTEM_TASK>Summarize this tweet into 1-2 sentences</SYSTEM_TASK>`;
+
+  const completion = await openai.chat.completions.create({
+    model: character.model,
+    messages: [
+      { role: "system", content: prompt },
+      { role: "user", content: tweetText },
+    ],
+    max_tokens: MAX_OUTPUT_TOKENS,
+    temperature: character.temperature,
+  });
+
+  if (!completion.choices?.[0]?.message?.content) {
+    throw new Error(
+      `No content in API response: ${JSON.stringify(completion)}`,
+    );
+  }
+
+  return completion.choices[0].message.content;
+};
