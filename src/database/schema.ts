@@ -61,4 +61,26 @@ export const initializeSchema = (db: Database) => {
       CREATE INDEX idx_chat_messages_created ON chat_messages(created_at);
     `);
   }
+
+  // Check if vector_tweets table exists
+  const vectorTweetsTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='vector_tweets'",
+    )
+    .get();
+
+  if (!vectorTweetsTableExists) {
+    // Vector Tweets Table
+    db.exec(`
+      CREATE VIRTUAL TABLE vector_tweets USING vec0(
+        username TEXT,
+        tweet_id text,
+        tweet_text text,
+        tweet_text_summary text,
+        tweeted_at text,
+        tweet_text_embedding float[384],
+        tweet_text_summary_embedding float[384]
+      );
+    `);
+  }
 };

@@ -6,7 +6,7 @@ import {
   generateImagePromptForCharacter,
   generateReply,
   generateTopicPost,
-  handleBannedAndLengthRetries,
+  generateTweetSummary,
 } from "../completions";
 import { saveTweet as saveTweet, getTweetByInputTweetId } from "../database";
 import { generateImageForTweet } from "../images";
@@ -21,7 +21,10 @@ import {
   getUserInteractionCount,
   TwitterHistory,
 } from "../database/tweets";
-
+import {
+  storeTweetEmbedding,
+  isTweetTooSimilar,
+} from "../embeddings/tweet-embeddings";
 interface Mention {
   id: string;
   user: string;
@@ -161,70 +164,99 @@ export class TwitterProvider {
     );
 
     try {
-      const botHistory = await getTwitterHistoryByUsername(
-        this.character.username,
-      );
-      const formattedHistory = formatTwitterHistoryForPrompt(botHistory);
+      let completion;
+      let isSimilar = true;
+      let attemptCount = 0;
+      const maxAttempts = 3;
 
-      const completion = await generateTopicPost(
-        this.character,
-        formattedHistory,
-      );
-      logger.info("LLM completion done.");
+      while (isSimilar && attemptCount < maxAttempts) {
+        completion = await generateTopicPost(this.character);
+        logger.info("LLM completion attempt done.");
 
-      let sendTweetResponse;
-
-      const shouldGenerateImage =
-        this.character.postingBehavior.generateImagePrompt &&
-        Math.random() <
-          (this.character.postingBehavior.imagePromptChance || 0.3);
-
-      logger.debug(`shouldGenerateImage: ${shouldGenerateImage}`);
-
-      if (shouldGenerateImage) {
-        try {
-          const imageBuffer =
-            await this.generateImageForTwitterPost(completion);
-          sendTweetResponse = await this.sendTweetWithMedia(
-            completion.reply,
-            imageBuffer,
+        isSimilar = await isTweetTooSimilar(completion.reply);
+        if (isSimilar) {
+          logger.warn(
+            `Generated tweet is too similar, retrying... Attempt ${attemptCount + 1}`,
           );
-        } catch (e) {
-          logger.error("Error sending tweet with image:", e);
-          // Fallback to sending tweet without image
-          logger.info("Falling back to sending tweet without image");
-          sendTweetResponse = await this.scraper.sendTweet(completion.reply);
         }
-      } else {
-        sendTweetResponse = await this.scraper.sendTweet(completion.reply);
+        attemptCount++;
       }
 
-      if (!sendTweetResponse) {
-        throw new Error("Failed to send tweet - no response received");
-      }
-
-      const responseJson =
-        (await sendTweetResponse.json()) as TwitterCreateTweetResponse;
-      if (!responseJson.data?.create_tweet) {
-        logger.error("An error occurred:", { responseJson });
+      if (isSimilar) {
+        logger.error("Max attempts reached. Skipping tweet generation.");
         return;
       }
 
-      const newTweetId =
-        responseJson.data.create_tweet.tweet_results.result.rest_id;
-      logger.info(`The reply tweet was sent: ${newTweetId}`);
+      if (completion) {
+        let sendTweetResponse;
 
-      saveTweet(this.character.username, {
-        input_tweet_id: "",
-        input_tweet_created_at: "",
-        input_tweet_text: "",
-        input_tweet_user_id: "",
-        input_tweet_username: "",
-        new_tweet_id: newTweetId,
-        prompt: completion.prompt,
-        new_tweet_text: completion.reply,
-      });
-      logger.info("A row was inserted into the database.\n");
+        const shouldGenerateImage =
+          this.character.postingBehavior.generateImagePrompt &&
+          Math.random() <
+            (this.character.postingBehavior.imagePromptChance || 0.3);
+
+        logger.debug(`shouldGenerateImage: ${shouldGenerateImage}`);
+
+        if (shouldGenerateImage) {
+          try {
+            const imageBuffer =
+              await this.generateImageForTwitterPost(completion);
+            sendTweetResponse = await this.sendTweetWithMedia(
+              completion.reply,
+              imageBuffer,
+            );
+          } catch (e) {
+            logger.error("Error sending tweet with image:", e);
+            // Fallback to sending tweet without image
+            logger.info("Falling back to sending tweet without image");
+            sendTweetResponse = await this.scraper.sendTweet(completion.reply);
+          }
+        } else {
+          sendTweetResponse = await this.scraper.sendTweet(completion.reply);
+        }
+
+        if (!sendTweetResponse) {
+          throw new Error("Failed to send tweet - no response received");
+        }
+
+        const responseJson =
+          (await sendTweetResponse.json()) as TwitterCreateTweetResponse;
+        if (!responseJson.data?.create_tweet) {
+          logger.error("An error occurred:", { responseJson });
+          return;
+        }
+
+        const newTweetId =
+          responseJson.data.create_tweet.tweet_results.result.rest_id;
+        logger.info(`The reply tweet was sent: ${newTweetId}`);
+
+        saveTweet(this.character.username, {
+          input_tweet_id: "",
+          input_tweet_created_at: "",
+          input_tweet_text: "",
+          input_tweet_user_id: "",
+          input_tweet_username: "",
+          new_tweet_id: newTweetId,
+          prompt: completion.prompt,
+          new_tweet_text: completion.reply,
+        });
+
+        // Store tweet embedding
+        const tweetTextSummary = await generateTweetSummary(
+          this.character,
+          completion.reply,
+        );
+        if (tweetTextSummary) {
+          await storeTweetEmbedding(
+            this.character.username,
+            newTweetId,
+            completion.reply,
+            tweetTextSummary,
+            new Date().toISOString(),
+          );
+        }
+        logger.info("A row was inserted into the database.\n");
+      }
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
       logger.error("e.message", e.message);
