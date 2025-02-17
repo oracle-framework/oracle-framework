@@ -7,7 +7,6 @@ import {
   generateReply,
   generateTopicPost,
   generateTweetSummary,
-  handleBannedAndLengthRetries,
 } from "../completions";
 import { saveTweet as saveTweet, getTweetByInputTweetId } from "../database";
 import { generateImageForTweet } from "../images";
@@ -168,7 +167,7 @@ export class TwitterProvider {
       let completion;
       let isSimilar = true;
       let attemptCount = 0;
-      const maxAttempts = 5;
+      const maxAttempts = 3;
 
       while (isSimilar && attemptCount < maxAttempts) {
         completion = await generateTopicPost(this.character);
