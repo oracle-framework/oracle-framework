@@ -251,9 +251,7 @@ export const generateReply = async (
  * @param character
  * @param recentHistory
  */
-export const generateTopicPost = async (
-  character: Character,
-) => {
+export const generateTopicPost = async (character: Character) => {
   const topic = character
     .topics!.sort(() => Math.random() - 0.5)
     .slice(0, 1)[0];
@@ -265,7 +263,7 @@ export const generateTopicPost = async (
     username: character.username,
     bio: character.bio.join("\n"),
     lore: character.lore.join("\n"),
-    postDirections: character.postDirections.join("\n")
+    postDirections: character.postDirections.join("\n"),
   };
 
   const userPrompt = `Generate a post that is ${adjective} about ${topic}`;
