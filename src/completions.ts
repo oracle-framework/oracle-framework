@@ -105,37 +105,19 @@ const generateCompletionForCharacter = async (
   prompt: string,
   character: Character,
   isChatMode: boolean = false,
-  userPrompt?: string,
+  userPrompt: string,
 ) => {
   let model = character.model;
   if (isChatMode) {
     model = character.postingBehavior.chatModeModel || character.model;
   }
-  // TODO: change this once we use userPrompt everywhere
-  if (userPrompt) {
-    logger.debug({ userPrompt }, "userPrompt");
-    const completion = await openai.chat.completions.create({
-      model: model,
-      messages: [
-        { role: "system", content: prompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: isChatMode ? 300 : MAX_OUTPUT_TOKENS,
-      temperature: character.temperature,
-    });
-
-    if (!completion.choices?.[0]?.message?.content) {
-      throw new Error(
-        `No content in API response: ${JSON.stringify(completion)}`,
-      );
-    }
-
-    return completion.choices[0].message.content;
-  }
-
+  logger.debug({ userPrompt }, "userPrompt");
   const completion = await openai.chat.completions.create({
     model: model,
-    messages: [{ role: "user", content: prompt }],
+    messages: [
+      { role: "system", content: prompt },
+      { role: "user", content: userPrompt },
+    ],
     max_tokens: isChatMode ? 300 : MAX_OUTPUT_TOKENS,
     temperature: character.temperature,
   });
@@ -166,7 +148,7 @@ export const handleBannedAndLengthRetries = async (
   character: Character,
   maxLength: number = 280,
   banThreshold: number = 3,
-  inputMessage?: string,
+  inputMessage: string,
 ) => {
   let currentReply = generatedReply;
   let banCount = 0;
@@ -251,6 +233,7 @@ export const generateReply = async (
         character,
         280,
         3,
+        inputMessage,
       );
     }
 
@@ -295,7 +278,14 @@ export const generateTopicPost = async (
     userPrompt,
   );
 
-  reply = await handleBannedAndLengthRetries(prompt, reply, character, 280, 3);
+  reply = await handleBannedAndLengthRetries(
+    prompt,
+    reply,
+    character,
+    280,
+    3,
+    userPrompt,
+  );
   reply = reply.replace(/\\n/g, "\n");
 
   const topicPostLog = `<b>${character.username}, topic: ${topic}, adjective: ${adjective}</b>:\n\n${reply}`;
