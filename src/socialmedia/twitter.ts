@@ -21,12 +21,15 @@ import {
 } from "../database/tweets";
 
 interface Mention {
-  id: string;
-  user: string;
-  created_at: Date;
-  text: string;
+  id_str: string;
+  username: string;
+  tweet_created_at: string;
+  full_text: string;
   user_id_str: string;
-  conversation_id?: string;
+  conversation_id: string;
+  in_reply_to_status_id_str?: string;
+  in_reply_to_user_id_str?: string;
+  in_reply_to_screen_name?: string;
 }
 
 
@@ -274,19 +277,6 @@ export class TwitterProvider {
         logger.error("An error occurred:", { responseJson: newTweetJson });
         return;
       }
-      // save reply tweet
-      saveTweet({
-        id_str: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
-        user_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.user_id_str,
-        tweet_created_at: newTweetJson.data.create_tweet.tweet_results.result.legacy.created_at,
-        full_text: newTweetJson.data.create_tweet.tweet_results.result.legacy.full_text,
-        user_screen_name: newTweetJson.data.create_tweet.tweet_results.result.core.user_results.result.legacy.screen_name,
-        conversation_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.conversation_id_str,
-        in_reply_to_status_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_status_id_str,
-        in_reply_to_user_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_user_id_str,
-        in_reply_to_screen_name: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_screen_name,
-      });
-      logger.info(mostRecentTweet);
       // save in_reply_to tweet
       saveTweet({
         id_str: mostRecentTweet.id_str,
@@ -295,7 +285,24 @@ export class TwitterProvider {
         full_text: mostRecentTweet.full_text,
         user_screen_name: mostRecentTweet.user_screen_name,
         conversation_id_str: mostRecentTweet.conversation_id_str,
+        in_reply_to_status_id_str: mostRecentTweet.in_reply_to_status_id_str || "",
+        in_reply_to_user_id_str: mostRecentTweet.in_reply_to_user_id_str || "",
+        in_reply_to_screen_name: mostRecentTweet.in_reply_to_screen_name || "",
       });
+      // save reply tweet
+      saveTweet({
+        id_str: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
+        user_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.user_id_str,
+        tweet_created_at: new Date(newTweetJson.data.create_tweet.tweet_results.result.legacy.created_at).toISOString(),
+        full_text: newTweetJson.data.create_tweet.tweet_results.result.legacy.full_text,
+        user_screen_name: newTweetJson.data.create_tweet.tweet_results.result.core.user_results.result.legacy.screen_name,
+        conversation_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.conversation_id_str,
+        in_reply_to_status_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_status_id_str,
+        in_reply_to_user_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_user_id_str,
+        in_reply_to_screen_name: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_screen_name,
+      });
+      logger.info(mostRecentTweet);
+      
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
       logger.error("e.message", e.message);
@@ -323,25 +330,26 @@ export class TwitterProvider {
     logger.info("Running replyToMentions", new Date().toISOString());
     try {
       const mentions = await this.findMentions(10);
+      console.log(mentions);
       logger.info(`Found ${mentions.length} mentions`);
 
       for (const mention of mentions) {
         try {
-          if (!mention.text || !mention.id) {
-            logger.info(`Skipping mention ${mention.id}: No text or ID`);
+          if (!mention.full_text || !mention.id_str) {
+            logger.info(`Skipping mention ${mention.id_str}: No text or ID`);
             continue;
           }
 
           const shouldSkip = await this.shouldSkipMention(mention);
           if (shouldSkip) {
             logger.info(
-              `Skipping mention ${mention.id}: Already processed or too many interactions`,
+              `Skipping mention ${mention.id_str}: Already processed or too many interactions`,
             );
             continue;
           }
 
           logger.info(
-            `Processing new mention ${mention.id} from ${mention.user}: ${mention.text}`,
+            `Processing new mention ${mention.id_str} from ${mention.username}: ${mention.full_text}`,
           );
 
           logger.info("Waiting 15 seconds before replying");
@@ -352,17 +360,17 @@ export class TwitterProvider {
           );
 
           const completion = await generateReply(
-            mention.text,
+            mention.full_text,
             this.character,
             false,
             formattedHistory,
           );
 
-          logger.info(`Generated reply for ${mention.id}: ${completion.reply}`);
+          logger.info(`Generated reply for ${mention.id_str}: ${completion.reply}`);
 
           const sendTweetResponse = await this.scraper.sendTweet(
             completion.reply,
-            mention.id,
+            mention.id_str,
           );
 
           const responseJson =
@@ -377,10 +385,23 @@ export class TwitterProvider {
 
           logger.info(`The reply tweet was sent: ${newTweetId}`);
 
+          //save mention
+          saveTweet({
+            id_str: mention.id_str,
+            user_id_str: mention.user_id_str,
+            tweet_created_at: mention.tweet_created_at,
+            full_text: mention.full_text,
+            user_screen_name: mention.username,
+            conversation_id_str: mention.conversation_id,
+            in_reply_to_status_id_str: mention.in_reply_to_status_id_str,
+            in_reply_to_user_id_str: mention.in_reply_to_user_id_str,
+            in_reply_to_screen_name: mention.in_reply_to_screen_name,
+          });
+          //save reply tweet
           saveTweet({
             id_str: newTweetId,
             user_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.user_id_str,
-            tweet_created_at: responseJson.data.create_tweet.tweet_results.result.legacy.created_at,
+            tweet_created_at: new Date(responseJson.data.create_tweet.tweet_results.result.legacy.created_at).toISOString(),
             full_text: responseJson.data.create_tweet.tweet_results.result.legacy.full_text,
             user_screen_name: responseJson.data.create_tweet.tweet_results.result.core.user_results.result.legacy.screen_name,
             conversation_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.conversation_id_str,
@@ -389,7 +410,7 @@ export class TwitterProvider {
             in_reply_to_screen_name: responseJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_screen_name,
           });
         } catch (e) {
-          logger.error(`Error processing mention ${mention.id}:`, e);
+          logger.error(`Error processing mention ${mention.id_str}:`, e);
           if (e instanceof Error) {
             logger.error("Error stack:", e.stack);
           }
@@ -417,15 +438,15 @@ export class TwitterProvider {
 
   private async shouldSkipMention(mention: Mention) {
     try {
-      if (!mention.id || !mention.user_id_str) {
+      if (!mention.id_str || !mention.user_id_str) {
         logger.info(`Skipping mention: Missing ID or user_id_str`);
         return true;
       }
 
       // Skip if we've already processed this tweet
-      const existingTweet = getTweetById(mention.id);
+      const existingTweet = getTweetById(mention.id_str);
       if (existingTweet) {
-        logger.info(`Skipping mention ${mention.id}: Already processed`);
+        logger.info(`Skipping mention ${mention.id_str}: Already processed`);
         return true;
       }
 
@@ -437,20 +458,20 @@ export class TwitterProvider {
 
       if (interactionCount > this.INTERACTION_LIMIT) {
         logger.info(
-          `Skipping mention ${mention.id}: Too many interactions (${interactionCount}) with user ${mention.user_id_str}`,
+          `Skipping mention ${mention.id_str}: Too many interactions (${interactionCount}) with user ${mention.user_id_str}`,
         );
         return true;
       }
 
       // Skip if user is in dontTweetAt list
-      if (this.character.postingBehavior.dontTweetAt?.includes(mention.user)) {
-        logger.info(`Skipping mention ${mention.id}: User in dontTweetAt list`);
+      if (this.character.postingBehavior.dontTweetAt?.includes(mention.user_id_str)) {
+        logger.info(`Skipping mention ${mention.id_str}: User in dontTweetAt list`);
         return true;
       }
 
       return false;
     } catch (e) {
-      logger.error(`Error in shouldSkipMention for mention ${mention.id}:`, e);
+      logger.error(`Error in shouldSkipMention for mention ${mention.id_str}:`, e);
       if (e instanceof Error) {
         logger.error("Error stack:", e.stack);
       }
@@ -491,7 +512,10 @@ export class TwitterProvider {
           user_screen_name: user_screen_name,
           full_text: tweetData.legacy.full_text,
           conversation_id_str: tweetData.legacy.conversation_id_str,
-          tweet_created_at: tweetData.legacy.created_at,
+          tweet_created_at: new Date(tweetData.legacy.created_at).toISOString(),
+          in_reply_to_status_id_str: tweetData.legacy.in_reply_to_status_id_str || "",
+          in_reply_to_user_id_str: tweetData.legacy.in_reply_to_user_id_str || "",
+          in_reply_to_screen_name: tweetData.legacy.in_reply_to_screen_name || "",
         });
       } catch (e) {
         logger.debug("Error processing tweet:", e);
@@ -510,26 +534,34 @@ export class TwitterProvider {
       mentionsLimit,
       SearchMode.Latest,
     );
-
+ 
     const cleanedMentions = [];
     for await (const mention of mentions) {
       if (!mention.username) continue;
       const profile = await this.scraper.getProfile(mention.username);
       if (!profile.followersCount) continue;
-      if (profile.followersCount < 50) {
+      if (profile.followersCount < 5) {
         logger.info(
           `Mention ${mention.id} skipped, user ${mention.username} has less than 50 followers`,
         );
         continue;
       }
+      
+    //the response object shows us inReplyToStatusId, but it doesnt show us the user_id_str of that tweet
+    //for now we check the db to see if its our character and avoid another call to twitter api
+    //if its not a reply to our character, those fields will be empty
       const cleanedMention = {
-        id: mention.id,
-        user: mention.username,
-        created_at: mention.timeParsed,
-        text: mention.text,
+        id_str: mention.id,
+        username: mention.username,
+        tweet_created_at: mention.timeParsed?.toISOString() || "",
+        full_text: mention.text,
         user_id_str: mention.userId,
         conversation_id: mention.conversationId,
+        in_reply_to_status_id_str: mention.inReplyToStatusId,
       } as Mention;
+      const characterTweet = getTweetById(mention.inReplyToStatusId || "");
+      cleanedMention.in_reply_to_user_id_str = characterTweet?.user_id_str || "";
+      cleanedMention.in_reply_to_screen_name = characterTweet?.user_screen_name || "";
       cleanedMentions.push(cleanedMention);
     }
     return cleanedMentions;
