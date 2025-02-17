@@ -2,76 +2,55 @@ import { Tweet } from "../socialmedia/types";
 import { logger } from "../logger";
 import { db } from "../database";
 
-export const saveTweet = (username: string, tweet: Tweet): void => {
+export const saveTweet = (tweet: Tweet): void => {
   try {
-    logger.debug({ username, tweet }, "Inserting tweet");
+    logger.debug({ tweet }, "Inserting tweet");
 
-    if (!username || !tweet.new_tweet_id || !tweet.new_tweet_text) {
+    if (!tweet.id_str || 
+        !tweet.user_id_str || 
+        !tweet.user_screen_name || 
+        !tweet.full_text || 
+        !tweet.conversation_id_str || 
+        !tweet.tweet_created_at) {
       throw new Error(
-        `Missing required fields for bot tweet: ${JSON.stringify({
-          username: !username,
-          new_tweet_id: !tweet.new_tweet_id,
-          new_tweet_text: !tweet.new_tweet_text,
+        `Missing required fields for tweet: ${JSON.stringify({
+          id_str: !tweet.id_str,
+          user_id_str: !tweet.user_id_str,
+          user_screen_name: !tweet.user_screen_name,
+          full_text: !tweet.full_text,
+          conversation_id_str: !tweet.conversation_id_str,
+          tweet_created_at: !tweet.tweet_created_at,
         })}`,
       );
     }
-
-    if (tweet.input_tweet_id) {
-      if (
-        !tweet.input_tweet_username ||
-        !tweet.input_tweet_user_id ||
-        !tweet.input_tweet_text ||
-        !tweet.input_tweet_created_at
-      ) {
-        throw new Error(
-          `Missing required fields for input tweet: ${JSON.stringify({
-            input_tweet_username: !tweet.input_tweet_username,
-            input_tweet_user_id: !tweet.input_tweet_user_id,
-            input_tweet_text: !tweet.input_tweet_text,
-            input_tweet_created_at: !tweet.input_tweet_created_at,
-          })}`,
-        );
-      }
-
-      // Save the original tweet
-      saveTwitterHistory({
-        twitter_user_id: tweet.input_tweet_user_id,
-        tweet_id: tweet.input_tweet_id,
-        tweet_text: tweet.input_tweet_text,
-        created_at: tweet.input_tweet_created_at,
-        is_bot_tweet: 0,
-        conversation_id: tweet.conversation_id,
-        username: tweet.input_tweet_username,
-      });
-    }
-
-    // Save the bot's reply
+    
+    // Save the  tweet
     const stmt = db.prepare(`
       INSERT INTO twitter_history (
-        twitter_user_id,
-        tweet_id,
-        tweet_text,
-        created_at,
-        is_bot_tweet,
-        conversation_id,
-        prompt,
-        username,
-        input_tweet_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id_str,
+        user_id_str,
+        user_screen_name,
+        full_text,
+        conversation_id_str,
+        tweet_created_at,
+        in_reply_to_status_id_str,
+        in_reply_to_user_id_str,
+        in_reply_to_screen_name,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `);
 
     stmt.run(
-      username,
-      tweet.new_tweet_id,
-      tweet.new_tweet_text,
-      new Date().toISOString(),
-      1,
-      tweet.conversation_id,
-      tweet.prompt,
-      username,
-      tweet.input_tweet_id,
+      tweet.id_str,
+      tweet.user_id_str,
+      tweet.user_screen_name,
+      tweet.full_text,
+      tweet.conversation_id_str,
+      tweet.tweet_created_at,
+      tweet.in_reply_to_status_id_str || null,
+      tweet.in_reply_to_user_id_str || null,
+      tweet.in_reply_to_screen_name || null,
     );
-
+  
     logger.debug("Successfully inserted tweet");
   } catch (e) {
     logger.error("Error inserting tweet:", e);
@@ -82,16 +61,16 @@ export const saveTweet = (username: string, tweet: Tweet): void => {
   }
 };
 
-export const getTweetByInputTweetId = (id: string): Tweet | undefined => {
+export const getTweetByIdStr = (id_str: string): Tweet | undefined => {
   try {
-    logger.debug(`Checking for tweet ID: ${id}`);
+    logger.debug(`Checking for tweet ID: ${id_str}`);
 
     const stmt = db.prepare(`
       SELECT * FROM twitter_history 
-      WHERE input_tweet_id = ?
+      WHERE id_str = ?
       LIMIT 1
     `);
-    const tweet = stmt.get(id) as TwitterHistory;
+    const tweet = stmt.get(id_str) as Tweet;
 
     logger.debug({ tweet }, "Query result");
 
@@ -101,163 +80,48 @@ export const getTweetByInputTweetId = (id: string): Tweet | undefined => {
     }
 
     return {
-      input_tweet_id: tweet.input_tweet_id || tweet.tweet_id,
-      input_tweet_created_at: tweet.created_at,
-      input_tweet_text: tweet.tweet_text,
-      input_tweet_user_id: tweet.twitter_user_id,
-      input_tweet_username: tweet.username,
-      new_tweet_id: tweet.tweet_id,
-      prompt: tweet.prompt || "",
-      new_tweet_text: tweet.tweet_text,
-      conversation_id: tweet.conversation_id,
+      id_str: tweet.id_str,
+      user_id_str: tweet.user_id_str,
+      user_screen_name: tweet.user_screen_name,
+      full_text: tweet.full_text,
+      conversation_id_str: tweet.conversation_id_str,
+      tweet_created_at: tweet.tweet_created_at,
+      in_reply_to_status_id_str: tweet.in_reply_to_status_id_str, 
+      in_reply_to_user_id_str: tweet.in_reply_to_user_id_str,
+      in_reply_to_screen_name: tweet.in_reply_to_screen_name,
     };
   } catch (e) {
-    logger.error(`Error getting tweet by input ID ${id}:`, e);
+    logger.error(`Error getting tweet by input ID ${id_str}:`, e);
     if (e instanceof Error) {
       logger.error("Error stack:", e.stack);
     }
     return undefined;
-  }
-};
-
-export const getLastTweetByUsername = (username: string): Tweet | undefined => {
-  try {
-    const history = getTwitterHistory(username, 1);
-    if (!history.length) return undefined;
-
-    const tweet = history[0];
-    return {
-      input_tweet_id: "",
-      input_tweet_created_at: "",
-      input_tweet_text: "",
-      input_tweet_user_id: "",
-      new_tweet_id: tweet.tweet_id,
-      prompt: tweet.prompt || "",
-      new_tweet_text: tweet.tweet_text,
-      conversation_id: tweet.conversation_id,
-    };
-  } catch (e) {
-    logger.error(`Error getting last tweet for user ${username}:`, e);
-    if (e instanceof Error) {
-      logger.error("Error stack:", e.stack);
-    }
-    return undefined;
-  }
-};
-
-export interface TwitterHistory {
-  twitter_user_id: string;
-  tweet_id: string;
-  tweet_text: string;
-  created_at: string;
-  is_bot_tweet: number;
-  conversation_id?: string;
-  prompt?: string;
-  username?: string;
-  input_tweet_id?: string;
-}
-
-export const saveTwitterHistory = (history: TwitterHistory) => {
-  try {
-    logger.debug("Saving twitter history");
-
-    // Validate required fields
-    if (
-      !history.twitter_user_id ||
-      !history.tweet_id ||
-      !history.tweet_text ||
-      !history.created_at
-    ) {
-      throw new Error(
-        `Missing required fields: ${JSON.stringify({
-          twitter_user_id: !history.twitter_user_id,
-          tweet_id: !history.tweet_id,
-          tweet_text: !history.tweet_text,
-          created_at: !history.created_at,
-        })}`,
-      );
-    }
-
-    const stmt = db.prepare(`
-      INSERT INTO twitter_history (
-        twitter_user_id,
-        tweet_id,
-        tweet_text,
-        created_at,
-        is_bot_tweet,
-        conversation_id,
-        prompt,
-        username,
-        input_tweet_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-
-    stmt.run(
-      history.twitter_user_id,
-      history.tweet_id,
-      history.tweet_text,
-      history.created_at,
-      history.is_bot_tweet,
-      history.conversation_id || null,
-      history.prompt || null,
-      history.username || null,
-      history.input_tweet_id || null,
-    );
-
-    logger.debug("Successfully saved twitter history");
-  } catch (e) {
-    logger.error(
-      "Error saving twitter history:",
-      e instanceof Error ? e.message : e,
-    );
-    if (e instanceof Error) {
-      logger.error("Error stack:", e.stack);
-    }
-    throw e;
   }
 };
 
 export const getTwitterHistory = (
-  userId: string,
+  user_id_str: string,
   limit: number = 50,
-  conversationId?: string,
-): TwitterHistory[] => {
+  conversation_id_str?: string,
+): Tweet[] => {
   try {
     let query = `
       SELECT * FROM twitter_history 
-      WHERE twitter_user_id = ?
+      WHERE user_id_str = ?
     `;
-    const params: any[] = [userId];
+    const params: any[] = [user_id_str];
 
-    if (conversationId) {
-      query += ` AND conversation_id = ?`;
-      params.push(conversationId);
+    if (conversation_id_str) {
+      query += ` AND conversation_id_str = ?`;
+      params.push(conversation_id_str);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT ?`;
+    query += ` ORDER BY tweet_created_at DESC LIMIT ?`;
     params.push(limit);
 
-    return db.prepare(query).all(...params) as TwitterHistory[];
+    return db.prepare(query).all(...params) as Tweet[];
   } catch (e) {
-    logger.error(`Error getting twitter history for user ${userId}:`, e);
-    if (e instanceof Error) {
-      logger.error("Error stack:", e.stack);
-    }
-    return [];
-  }
-};
-
-export const getTwitterHistoryByUsername = (
-  username: string,
-  limit: number = 50,
-): TwitterHistory[] => {
-  try {
-    return db
-      .prepare(
-        `SELECT * FROM twitter_history WHERE username = ? ORDER BY created_at DESC LIMIT ?`,
-      )
-      .all(username, limit) as TwitterHistory[];
-  } catch (e) {
-    logger.error(`Error getting twitter history for user ${username}:`, e);
+    logger.error(`Error getting twitter history for user ${user_id_str}:`, e);
     if (e instanceof Error) {
       logger.error("Error stack:", e.stack);
     }
@@ -266,18 +130,18 @@ export const getTwitterHistoryByUsername = (
 };
 
 export const getConversationHistory = (
-  conversationId: string,
+  conversation_id_str: string,
   limit: number = 50,
-): TwitterHistory[] => {
+): Tweet[] => {
   try {
     return db
       .prepare(
-        `SELECT * FROM twitter_history WHERE conversation_id = ? ORDER BY created_at DESC LIMIT ?`,
+        `SELECT * FROM twitter_history WHERE conversation_id_str = ? ORDER BY tweet_created_at DESC LIMIT ?`,
       )
-      .all(conversationId, limit) as TwitterHistory[];
+      .all(conversation_id_str, limit) as Tweet[];
   } catch (e) {
     logger.error(
-      `Error getting conversation history for ${conversationId}:`,
+      `Error getting conversation history for ${conversation_id_str}:`,
       e,
     );
     if (e instanceof Error) {
@@ -288,16 +152,12 @@ export const getConversationHistory = (
 };
 
 export const formatTwitterHistoryForPrompt = (
-  history: TwitterHistory[],
-  includePrompts: boolean = false,
+  history: Tweet[],
 ): string => {
   try {
     return history
       .map(tweet => {
-        let text = `@${tweet.username}: ${tweet.tweet_text}`;
-        if (includePrompts && tweet.prompt) {
-          text += `\nPrompt used: ${tweet.prompt}`;
-        }
+        let text = `@${tweet.user_screen_name}: ${tweet.full_text}`;
         return text;
       })
       .join("\n\n");
@@ -311,40 +171,27 @@ export const formatTwitterHistoryForPrompt = (
 };
 
 export const getUserInteractionCount = (
-  twitterUserId: string,
-  botUsername: string,
-  interactionTimeout: number,
+  user_id_str: string,
+  interaction_timeout: number,
 ): number => {
   try {
-    const cutoff = new Date(Date.now() - interactionTimeout).toISOString();
+    const cutoff = new Date(Date.now() - interaction_timeout).toISOString();
 
     const result = db
-      .prepare(
-        `SELECT COUNT(*) as interaction_count 
-         FROM twitter_history 
-         WHERE twitter_user_id = ? 
-         AND is_bot_tweet = 1
-         AND created_at >= ?
-         AND (
-           -- Count when we reply to this user
-           (username = ?) OR
-           -- Count when this user is in the conversation
-           (conversation_id IN (
-             SELECT conversation_id 
-             FROM twitter_history 
-             WHERE twitter_user_id = ?
-             AND conversation_id IS NOT NULL
-           ))
-         )`,
+      .prepare(`
+        SELECT COUNT(*) FROM twitter_history 
+        WHERE in_reply_to_user_id_str = ? 
+        AND created_at > ?;
+      `,
       )
-      .get(botUsername, cutoff, twitterUserId, twitterUserId) as {
+      .get(user_id_str, cutoff) as {
       interaction_count: number;
     };
 
     return result.interaction_count;
   } catch (e) {
     logger.error(
-      `Error getting interaction count for user ${twitterUserId}:`,
+      `Error getting interaction count for user ${user_id_str}:`,
       e,
     );
     if (e instanceof Error) {
