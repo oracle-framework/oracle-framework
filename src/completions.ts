@@ -233,7 +233,7 @@ export const generateReply = async (
         character,
         280,
         3,
-        inputMessage
+        inputMessage,
       );
     }
 
@@ -280,7 +280,14 @@ export const generateTopicPost = async (
     userPrompt,
   );
 
-  reply = await handleBannedAndLengthRetries(prompt, reply, character, 280, 3, userPrompt);
+  reply = await handleBannedAndLengthRetries(
+    prompt,
+    reply,
+    character,
+    280,
+    3,
+    userPrompt,
+  );
   reply = reply.replace(/\\n/g, "\n");
 
   const topicPostLog = `<b>${character.username}, topic: ${topic}, adjective: ${adjective}</b>:\n\n${reply}`;

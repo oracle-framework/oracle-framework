@@ -31,10 +31,12 @@ cp .env.example .env
 3. Configure your `.env` file with:
 
 - LLM provider credentials (we recommend OpenRouter), ie
+
 ```
 LLM_PROVIDER_URL=https://openrouter.ai/api/v1
 LLM_PROVIDER_API_KEY=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
 ```
+
 - Twitter account credentials (optional)
 - Telegram bot token (optional)
 - Discord bot token (optional)
@@ -125,9 +127,7 @@ Characters are defined in a single JSON file under `src/characters/characters.js
       "this is an array of strings",
       "containing your agent's favorite topics"
     ],
-    "adjectives": [
-      "adjectives used to create posts",
-    ],
+    "adjectives": ["adjectives used to create posts"],
     "telegramBotUsername": "your agent's name on Telegram",
     "discordBotUsername": "your agent's name on Discord",
     "postingBehavior": {
@@ -140,7 +140,7 @@ Characters are defined in a single JSON file under `src/characters/characters.js
       // list of rules for chat mode
       "chatModeRules": [
         "if the message says: a you say b",
-        "if the message says: good night you reply gn",
+        "if the message says: good night you reply gn"
       ],
       // model to use for chat mode
       "chatModeModel": "meta-llama/llama-3.3-70b-instruct",
@@ -153,7 +153,7 @@ Characters are defined in a single JSON file under `src/characters/characters.js
       // list of stickers to use on Telegram
       "stickerFiles": [
         "CAACAgEAAyEFAASMuWLFAAIDkWeDQ_kOhEWzEl0oTiAOokps_P24AAKzBAAC6XRQRu807DcersvfNgQ",
-        "CAACAgIAAyEFAASMuWLFAAIDlWeDRJqI8gtcgFW0yBVlSMCfA6KsAAKHMwACYPoYSCgCth58j8ruNgQ",
+        "CAACAgIAAyEFAASMuWLFAAIDlWeDRJqI8gtcgFW0yBVlSMCfA6KsAAKHMwACYPoYSCgCth58j8ruNgQ"
       ]
     },
     // currently only used on Twitter
