@@ -540,7 +540,7 @@ export class TwitterProvider {
       if (!mention.username) continue;
       const profile = await this.scraper.getProfile(mention.username);
       if (!profile.followersCount) continue;
-      if (profile.followersCount < 5) {
+      if (profile.followersCount < 50) {
         logger.info(
           `Mention ${mention.id} skipped, user ${mention.username} has less than 50 followers`,
         );
