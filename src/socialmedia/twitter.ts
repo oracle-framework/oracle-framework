@@ -553,13 +553,7 @@ export class TwitterProvider {
       completion.reply,
       this.character,
     );
-    imagePrompt = await handleBannedAndLengthRetries(
-      imagePrompt,
-      imagePrompt,
-      this.character,
-      1024,
-      3,
-    );
+    //TODO: Check if imagePrompt was banned here
     const imageBuffer = await generateImageForTweet(
       imagePrompt,
       this.character,
