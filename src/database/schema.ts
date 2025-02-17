@@ -12,21 +12,23 @@ export const initializeSchema = (db: Database) => {
     // Twitter History Table
     db.exec(`
       CREATE TABLE twitter_history (
-        twitter_user_id TEXT NOT NULL,
-        tweet_id TEXT NOT NULL,
-        tweet_text TEXT NOT NULL,
-        created_at DATETIME NOT NULL,
-        is_bot_tweet INTEGER NOT NULL DEFAULT 0,
-        conversation_id TEXT,
-        prompt TEXT,
-        username TEXT,
-        input_tweet_id TEXT
+        id_str VARCHAR(50) NOT NULL,              
+        user_id_str VARCHAR(50) NOT NULL,         
+        user_screen_name VARCHAR(20) NOT NULL,    
+        full_text TEXT NOT NULL,                  
+        conversation_id_str VARCHAR(50) NOT NULL, 
+        tweet_created_at DATETIME NOT NULL,
+        in_reply_to_status_id_str VARCHAR(50),    
+        in_reply_to_user_id_str VARCHAR(50),      
+        in_reply_to_screen_name VARCHAR(20)       
       );
 
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_user_id ON twitter_history(twitter_user_id);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_conversation ON twitter_history(conversation_id);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_created_at ON twitter_history(created_at);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_tweet_id ON twitter_history(tweet_id);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_id_str ON twitter_history(id_str);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_user_id_str ON twitter_history(user_id_str);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_conversation_id_str ON twitter_history(conversation_id_str);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_tweet_created_at ON twitter_history(tweet_created_at);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_in_reply_to_status_id_str ON twitter_history(in_reply_to_status_id_str);
+      CREATE INDEX IF NOT EXISTS idx_twitter_history_in_reply_to_user_id_str ON twitter_history(in_reply_to_user_id_str);
     `);
   }
 
