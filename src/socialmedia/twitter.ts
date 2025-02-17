@@ -8,18 +8,16 @@ import {
   generateTopicPost,
   handleBannedAndLengthRetries,
 } from "../completions";
-import { saveTweet as saveTweet, getTweetByInputTweetId } from "../database";
+import { saveTweet as saveTweet, getTweetById } from "../database";
 import { generateImageForTweet } from "../images";
 import { logger } from "../logger";
 import { randomInterval } from "../utils";
-import { CleanedTweet } from "./types";
+import { Tweet, TwitterCreateTweetResponse } from "./types";
 import {
   formatTwitterHistoryForPrompt,
   getConversationHistory,
   getTwitterHistory,
-  getTwitterHistoryByUsername,
   getUserInteractionCount,
-  TwitterHistory,
 } from "../database/tweets";
 
 interface Mention {
@@ -31,21 +29,6 @@ interface Mention {
   conversation_id?: string;
 }
 
-interface TwitterCreateTweetResponse {
-  data?: {
-    create_tweet: {
-      tweet_results: {
-        result: {
-          rest_id: string;
-        };
-      };
-    };
-  };
-  errors?: Array<{
-    message: string;
-    code: string;
-  }>;
-}
 
 export class TwitterProvider {
   private scraper: Scraper;
@@ -85,6 +68,7 @@ export class TwitterProvider {
         }; SameSite=${cookie.sameSite || "Lax"}`,
     );
     await this.scraper.setCookies(cookieStrings);
+    this.character.user_id_str = await this.getUserId(this.character.username); //// need to find a good spot for this
     return this;
   }
 
@@ -161,7 +145,8 @@ export class TwitterProvider {
     );
 
     try {
-      const botHistory = await getTwitterHistoryByUsername(
+      /// needs to take user_id_str
+      const botHistory = await getTwitterHistory(
         this.character.username,
       );
       const formattedHistory = formatTwitterHistoryForPrompt(botHistory);
@@ -214,16 +199,19 @@ export class TwitterProvider {
         responseJson.data.create_tweet.tweet_results.result.rest_id;
       logger.info(`The reply tweet was sent: ${newTweetId}`);
 
-      saveTweet(this.character.username, {
-        input_tweet_id: "",
-        input_tweet_created_at: "",
-        input_tweet_text: "",
-        input_tweet_user_id: "",
-        input_tweet_username: "",
-        new_tweet_id: newTweetId,
-        prompt: completion.prompt,
-        new_tweet_text: completion.reply,
-      });
+      const tweet: Tweet = {
+        id_str: responseJson.data.create_tweet.tweet_results.result.rest_id,
+        user_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.user_id_str,
+        tweet_created_at: responseJson.data.create_tweet.tweet_results.result.legacy.created_at,
+        full_text: responseJson.data.create_tweet.tweet_results.result.legacy.full_text,
+        user_screen_name: responseJson.data.create_tweet.tweet_results.result.core.user_results.result.legacy.screen_name,
+        conversation_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.conversation_id_str,
+        in_reply_to_status_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_status_id_str,
+        in_reply_to_user_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_user_id_str,
+        in_reply_to_screen_name: responseJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_screen_name
+      };
+
+      saveTweet(tweet);
       logger.info("A row was inserted into the database.\n");
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
@@ -241,7 +229,7 @@ export class TwitterProvider {
       const filteredTimeline = this.filterTimeline(timeline);
       logger.info(`After filtering, ${filteredTimeline.length} posts remain.`);
       const mostRecentTweet = filteredTimeline.reduce((latest, current) => {
-        return new Date(current.created_at) > new Date(latest.created_at)
+        return new Date(current.tweet_created_at) > new Date(latest.tweet_created_at)
           ? current
           : latest;
       }, filteredTimeline[0]);
@@ -252,14 +240,13 @@ export class TwitterProvider {
       }
 
       const mostRecentTweetMinutesAgo = Math.round(
-        (Date.now() - mostRecentTweet.created_at.getTime()) / 1000 / 60,
+        (Date.now() - new Date(mostRecentTweet.tweet_created_at).getTime()) / 1000 / 60,
       );
       logger.info(
         `The most recent tweet was ${mostRecentTweetMinutesAgo} minutes ago.`,
       );
 
-      const history = getTwitterHistoryByUsername(this.character.username, 10);
-
+      const history = getTwitterHistory(this.character.user_id_str, 10);
       const historyByUser = getTwitterHistory(mostRecentTweet.user_id_str, 10);
 
       const formattedHistory = formatTwitterHistoryForPrompt(
@@ -267,7 +254,7 @@ export class TwitterProvider {
       );
 
       const completion = await generateReply(
-        mostRecentTweet.text,
+        mostRecentTweet.full_text,
         this.character,
         false,
         formattedHistory,
@@ -277,7 +264,7 @@ export class TwitterProvider {
 
       const sendTweetResponse = await this.scraper.sendTweet(
         completion.reply,
-        mostRecentTweet.id,
+        mostRecentTweet.id_str,
       );
 
       const newTweetJson =
@@ -287,17 +274,27 @@ export class TwitterProvider {
         logger.error("An error occurred:", { responseJson: newTweetJson });
         return;
       }
-
-      saveTweet(this.character.username, {
-        input_tweet_id: mostRecentTweet.id,
-        input_tweet_created_at: mostRecentTweet.created_at.toISOString(),
-        input_tweet_text: mostRecentTweet.text,
-        input_tweet_user_id: mostRecentTweet.user_id_str,
-        input_tweet_username: mostRecentTweet.user,
-        new_tweet_id:
-          newTweetJson.data.create_tweet.tweet_results.result.rest_id,
-        prompt: completion.prompt,
-        new_tweet_text: completion.reply,
+      // save reply tweet
+      saveTweet({
+        id_str: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
+        user_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.user_id_str,
+        tweet_created_at: newTweetJson.data.create_tweet.tweet_results.result.legacy.created_at,
+        full_text: newTweetJson.data.create_tweet.tweet_results.result.legacy.full_text,
+        user_screen_name: newTweetJson.data.create_tweet.tweet_results.result.core.user_results.result.legacy.screen_name,
+        conversation_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.conversation_id_str,
+        in_reply_to_status_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_status_id_str,
+        in_reply_to_user_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_user_id_str,
+        in_reply_to_screen_name: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_screen_name,
+      });
+      logger.info(mostRecentTweet);
+      // save in_reply_to tweet
+      saveTweet({
+        id_str: mostRecentTweet.id_str,
+        user_id_str: mostRecentTweet.user_id_str,
+        tweet_created_at: mostRecentTweet.tweet_created_at,
+        full_text: mostRecentTweet.full_text,
+        user_screen_name: mostRecentTweet.user_screen_name,
+        conversation_id_str: mostRecentTweet.conversation_id_str,
       });
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
@@ -305,18 +302,17 @@ export class TwitterProvider {
     }
   }
 
-  private filterTimeline(timeline: CleanedTweet[]) {
+  private filterTimeline(timeline: Tweet[]) {
     return timeline
       .filter(
         x =>
-          !x.text.includes("http") &&
+          !x.full_text.includes("http") &&
           !this.character.postingBehavior.dontTweetAt?.includes(x.user_id_str),
       )
-      .filter(x => getTweetByInputTweetId(x.id) === undefined)
+      .filter(x => getTweetById(x.id_str) === undefined)
       .filter(x => {
         const interactionCount = getUserInteractionCount(
           x.user_id_str,
-          this.character.username,
           this.INTERACTION_TIMEOUT,
         );
         return interactionCount < this.INTERACTION_LIMIT;
@@ -353,7 +349,6 @@ export class TwitterProvider {
           const history = this.getTwitterHistoryByMention(mention);
           const formattedHistory = formatTwitterHistoryForPrompt(
             history,
-            false,
           );
 
           const completion = await generateReply(
@@ -382,16 +377,16 @@ export class TwitterProvider {
 
           logger.info(`The reply tweet was sent: ${newTweetId}`);
 
-          saveTweet(this.character.username, {
-            input_tweet_id: mention.id,
-            input_tweet_created_at: mention.created_at.toISOString(),
-            input_tweet_text: mention.text,
-            input_tweet_user_id: mention.user_id_str,
-            input_tweet_username: mention.user,
-            new_tweet_id: newTweetId,
-            prompt: completion.prompt,
-            new_tweet_text: completion.reply,
-            conversation_id: mention.conversation_id,
+          saveTweet({
+            id_str: newTweetId,
+            user_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.user_id_str,
+            tweet_created_at: responseJson.data.create_tweet.tweet_results.result.legacy.created_at,
+            full_text: responseJson.data.create_tweet.tweet_results.result.legacy.full_text,
+            user_screen_name: responseJson.data.create_tweet.tweet_results.result.core.user_results.result.legacy.screen_name,
+            conversation_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.conversation_id_str,
+            in_reply_to_status_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_status_id_str,
+            in_reply_to_user_id_str: responseJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_user_id_str,
+            in_reply_to_screen_name: responseJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_screen_name,
           });
         } catch (e) {
           logger.error(`Error processing mention ${mention.id}:`, e);
@@ -411,8 +406,8 @@ export class TwitterProvider {
     logger.info("Finished replyToMentions", new Date().toISOString());
   }
 
-  private getTwitterHistoryByMention(mention: Mention): TwitterHistory[] {
-    let history: TwitterHistory[] = [];
+  private getTwitterHistoryByMention(mention: Mention): Tweet[] {
+    let history: Tweet[] = [];
     history.push(...getTwitterHistory(mention.user_id_str, 10));
     if (mention.conversation_id) {
       history.push(...getConversationHistory(mention.conversation_id, 10));
@@ -428,7 +423,7 @@ export class TwitterProvider {
       }
 
       // Skip if we've already processed this tweet
-      const existingTweet = getTweetByInputTweetId(mention.id);
+      const existingTweet = getTweetById(mention.id);
       if (existingTweet) {
         logger.info(`Skipping mention ${mention.id}: Already processed`);
         return true;
@@ -437,7 +432,6 @@ export class TwitterProvider {
       // Get interaction count from twitter_history
       const interactionCount = getUserInteractionCount(
         mention.user_id_str,
-        this.character.username,
         this.INTERACTION_TIMEOUT,
       );
 
@@ -465,9 +459,9 @@ export class TwitterProvider {
     }
   }
 
-  private async getTimeline(): Promise<CleanedTweet[]> {
+  private async getTimeline(): Promise<Tweet[]> {
     const tweets = await this.scraper.fetchHomeTimeline(50, []);
-    const cleanedTweets = [];
+    const cleanedTweets: Tweet[] = [];
 
     logger.debug(`Got ${tweets.length} tweets from timeline`);
 
@@ -477,25 +471,27 @@ export class TwitterProvider {
         if (
           !tweetData?.legacy?.full_text ||
           !tweetData?.legacy?.created_at ||
-          !tweetData?.rest_id
+          !tweetData?.rest_id ||
+          !tweetData?.core?.user_results?.result?.legacy?.screen_name
         ) {
           logger.debug("Malformed tweet data received");
           continue;
         }
 
         let user_id_str = tweetData.legacy.user_id_str;
-        let user = tweetData.legacy.user?.screen_name || "";
+        let user_screen_name = tweetData.core.user_results.result.legacy.screen_name;
         if (!user_id_str) {
           logger.debug("Could not get user info from tweet");
           continue;
         }
-
+        
         cleanedTweets.push({
-          id: tweetData.rest_id,
-          created_at: new Date(tweetData.legacy.created_at),
-          text: tweetData.legacy.full_text,
-          user_id_str,
-          user,
+          id_str: tweetData.rest_id,
+          user_id_str: user_id_str,
+          user_screen_name: user_screen_name,
+          full_text: tweetData.legacy.full_text,
+          conversation_id_str: tweetData.legacy.conversation_id_str,
+          tweet_created_at: tweetData.legacy.created_at,
         });
       } catch (e) {
         logger.debug("Error processing tweet:", e);
@@ -561,6 +557,21 @@ export class TwitterProvider {
     return imageBuffer;
   }
 
+  private async getUserId(userScreenName: string): Promise<string> {
+    try {
+      const userId = await this.scraper.getUserIdByScreenName(userScreenName);
+      if (!userId) {
+        logger.error("Could not get user id for user:", userScreenName);
+        throw new Error(`Could not get user id for user: ${userScreenName}`);
+      }
+      return userId;
+    } catch (e) {
+      logger.debug("Error getting user id:", e);
+      throw e;
+    }
+  }
+
   private readonly INTERACTION_LIMIT = 3;
   private readonly INTERACTION_TIMEOUT = 60 * 60 * 1000; // 1 hour in milliseconds
 }
+

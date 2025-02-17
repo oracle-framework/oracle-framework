@@ -24,7 +24,6 @@ export const saveTweet = (tweet: Tweet): void => {
       );
     }
     
-    // Save the  tweet
     const stmt = db.prepare(`
       INSERT INTO twitter_history (
         id_str,
@@ -35,7 +34,7 @@ export const saveTweet = (tweet: Tweet): void => {
         tweet_created_at,
         in_reply_to_status_id_str,
         in_reply_to_user_id_str,
-        in_reply_to_screen_name,
+        in_reply_to_screen_name
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `);
 
@@ -46,9 +45,9 @@ export const saveTweet = (tweet: Tweet): void => {
       tweet.full_text,
       tweet.conversation_id_str,
       tweet.tweet_created_at,
-      tweet.in_reply_to_status_id_str || null,
-      tweet.in_reply_to_user_id_str || null,
-      tweet.in_reply_to_screen_name || null,
+      tweet.in_reply_to_status_id_str,
+      tweet.in_reply_to_user_id_str,
+      tweet.in_reply_to_screen_name,
     );
   
     logger.debug("Successfully inserted tweet");
@@ -61,7 +60,7 @@ export const saveTweet = (tweet: Tweet): void => {
   }
 };
 
-export const getTweetByIdStr = (id_str: string): Tweet | undefined => {
+export const getTweetById = (id_str: string): Tweet | undefined => {
   try {
     logger.debug(`Checking for tweet ID: ${id_str}`);
 
@@ -170,6 +169,8 @@ export const formatTwitterHistoryForPrompt = (
   }
 };
 
+
+//// note need to look at direct replies in conversation vs mentions in conversation
 export const getUserInteractionCount = (
   user_id_str: string,
   interaction_timeout: number,
@@ -179,9 +180,9 @@ export const getUserInteractionCount = (
 
     const result = db
       .prepare(`
-        SELECT COUNT(*) FROM twitter_history 
+        SELECT COUNT(*) AS interaction_count FROM twitter_history 
         WHERE in_reply_to_user_id_str = ? 
-        AND created_at > ?;
+        AND tweet_created_at > ?;
       `,
       )
       .get(user_id_str, cutoff) as {
