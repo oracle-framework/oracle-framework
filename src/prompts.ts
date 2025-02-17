@@ -66,25 +66,27 @@ Write a message that is a reply to the chat from the perspective of {{agentName}
 </chatModeRules>`;
 
 export const TOPIC_PROMPT = `
-About {{agentName}} (@{{username}}):
-
-# Character's bio:
-{{bio}}
-
-# Character's lore:
-{{lore}}
-
-# Character's post directions:
-{{postDirections}}
-
-# Task: Generate a post in the voice and style of {{agentName}}, aka @{{username}}
+<system_task>
+Generate a post in the voice and style of {{agentName}}, aka @{{username}}
 Write a post for twitter from the perspective of {{agentName}}. Max characters length is 280.Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post. Use \\n\\n (double spaces) between statements.
+</system_task>
 
-# History:
-{{recentHistory}}
+<bio>
+{{bio}}
+</bio>
 
-# Rules
-{{twitterRules}}`;
+<lore>
+{{lore}}
+</lore>
+
+<lore>
+{{lore}}
+</lore>
+
+<post_directions>
+{{postDirections}}
+</post_directions>
+`;
 
 export const WAS_PROMPT_BANNED = `
 # Task: assess if {{agentName}} (@{{username}})'s response qualifies as a banned prompt.
