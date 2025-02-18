@@ -4,10 +4,9 @@ import { logger } from "../logger";
 import { db } from "../database/db";
 import {
   saveTweet,
-  getTweetByInputTweetId,
+  getTweetById,
   getTwitterHistory,
   getUserInteractionCount,
-  TwitterHistory,
 } from "../database/tweets";
 import { Tweet } from "../socialmedia/types";
 jest.mock("../logger", () => ({
@@ -29,18 +28,19 @@ describe("Twitter Database Operations", () => {
   describe("saveTweet", () => {
     it("should handle missing required fields", async () => {
       const invalidTweet = {
-        input_tweet_id: "test123",
-        input_tweet_created_at: new Date().toISOString(),
-        input_tweet_text: "test input",
-        input_tweet_user_id: "user123",
-        new_tweet_id: "", // intentionally empty to test validation
-        new_tweet_text: "", // also empty to match error message
-        prompt: "test prompt",
+        id_str: "", // intentionally empty to test validation
+        tweet_created_at: new Date().toISOString(),
+        full_text: "", // also empty to match error message
+        user_id_str: "user123",
+        conversation_id_str: "23452435", 
+        in_reply_to_status_id_str: "1234567890",
+        in_reply_to_user_id_str: "", // not required field
+        in_reply_to_screen_name: "",  // not required field
       };
 
       const errorMsg =
-        'Missing required fields for bot tweet: {"username":false,"new_tweet_id":true,"new_tweet_text":true}';
-      expect(() => saveTweet("testuser", invalidTweet as Tweet)).toThrow(
+        'Missing required fields for tweet: {"id_str":true,"user_id_str":false,"user_screen_name":true,"full_text":true,"conversation_id_str":false,"tweet_created_at":false}';
+      expect(() => saveTweet(invalidTweet as Tweet)).toThrow(
         errorMsg,
       );
       expect(logger.error).toHaveBeenCalledWith(
@@ -56,17 +56,18 @@ describe("Twitter Database Operations", () => {
       });
 
       const tweet = {
-        new_tweet_id: "test123",
-        new_tweet_text: "test tweet",
-        input_tweet_id: "input123",
-        input_tweet_user_id: "user123",
-        input_tweet_username: "user123",
-        input_tweet_text: "input text",
-        input_tweet_created_at: new Date().toISOString(),
-        prompt: "test prompt",
+        id_str: "1234567890",
+        user_id_str: "user123",
+        user_screen_name: "testuser",
+        full_text: "test input",
+        conversation_id_str: "23452435",
+        tweet_created_at: new Date().toISOString(),
+        in_reply_to_status_id_str: "1234567890",
+        in_reply_to_user_id_str: "user123",
+        in_reply_to_screen_name: "testuser",
       };
 
-      expect(() => saveTweet("testuser", tweet)).toThrow(mockError);
+      expect(() => saveTweet(tweet)).toThrow(mockError);
       expect(logger.error).toHaveBeenCalledWith(
         "Error inserting tweet:",
         expect.any(Error),
@@ -74,13 +75,13 @@ describe("Twitter Database Operations", () => {
     });
   });
 
-  describe("getTweetByInputTweetId", () => {
+  describe("getTweetById", () => {
     it("should handle database errors", () => {
       jest.spyOn(testDb, "prepare").mockImplementationOnce(() => {
         throw new Error("Database error");
       });
 
-      const result = getTweetByInputTweetId("nonexistent");
+      const result = getTweetById("nonexistent");
       expect(result).toBeUndefined();
       expect(logger.error).toHaveBeenCalled();
     });
@@ -91,36 +92,47 @@ describe("Twitter Database Operations", () => {
       const now = new Date();
       const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
+      
       // Insert test data
       const stmt = testDb.prepare(`
         INSERT INTO twitter_history (
-          twitter_user_id, tweet_id, tweet_text, created_at, 
-          is_bot_tweet, conversation_id, username
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+          id_str,
+          user_id_str,
+          user_screen_name,
+          full_text,
+          conversation_id_str,
+          tweet_created_at,
+          in_reply_to_status_id_str,
+          in_reply_to_user_id_str,
+          in_reply_to_screen_name
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 
       stmt.run(
-        "bot123",
-        "tweet1",
+        "192837465748392",
+        "756483928659345",
+        'testuser99',
         "test tweet",
+        "132344556667890",
         now.toISOString(),
-        1,
-        "conv123",
+        "132323452337890",
+        "999444555000333",
         "testuser",
       );
 
       stmt.run(
-        "user456",
-        "tweet2",
-        "reply tweet",
+        "192837465748392",
+        "756483928659345",
+        'testuser99',
+        "test tweet",
+        "132344556667890",
         hourAgo.toISOString(),
-        0,
-        "conv123",
-        "replier",
+        "132323452337890",
+        "243523423452435",
+        "testuser",
       );
 
       const count = getUserInteractionCount(
-        "user456",
-        "bot123",
+        "999444555000333",
         2 * 60 * 60 * 1000,
       );
       expect(count).toBe(1);
@@ -131,7 +143,7 @@ describe("Twitter Database Operations", () => {
         throw new Error("Database error");
       });
 
-      const count = getUserInteractionCount("user123", "bot123", 3600000);
+      const count = getUserInteractionCount("243523423452435", 3600000);
       expect(count).toBe(0);
       expect(logger.error).toHaveBeenCalled();
     });
