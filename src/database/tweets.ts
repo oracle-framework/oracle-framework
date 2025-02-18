@@ -169,8 +169,6 @@ export const formatTwitterHistoryForPrompt = (
   }
 };
 
-
-//// note need to look at direct replies in conversation vs mentions in conversation
 export const getUserInteractionCount = (
   user_id_str: string,
   interaction_timeout: number,

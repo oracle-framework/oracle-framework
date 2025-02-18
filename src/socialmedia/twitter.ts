@@ -301,7 +301,6 @@ export class TwitterProvider {
         in_reply_to_user_id_str: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_user_id_str,
         in_reply_to_screen_name: newTweetJson.data.create_tweet.tweet_results.result.legacy.in_reply_to_screen_name,
       });
-      logger.info(mostRecentTweet);
       
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
@@ -330,7 +329,6 @@ export class TwitterProvider {
     logger.info("Running replyToMentions", new Date().toISOString());
     try {
       const mentions = await this.findMentions(10);
-      console.log(mentions);
       logger.info(`Found ${mentions.length} mentions`);
 
       for (const mention of mentions) {
@@ -343,7 +341,7 @@ export class TwitterProvider {
           const shouldSkip = await this.shouldSkipMention(mention);
           if (shouldSkip) {
             logger.info(
-              `Skipping mention ${mention.id_str}: Already processed or too many interactions`,
+              `Skipping mention ${mention.id_str}: Already processed, too many interactions, or not a direct reply in conversation`,
             );
             continue;
           }
@@ -438,6 +436,16 @@ export class TwitterProvider {
 
   private async shouldSkipMention(mention: Mention) {
     try {
+      const existingTweetInConversation = getTwitterHistory(
+        this.character.user_id_str,
+        1,
+        mention.conversation_id,
+      )
+      // if charact has a tweet in the conversation, and the mention is not a reply to the user, skip
+      if (existingTweetInConversation && mention.in_reply_to_user_id_str != this.character.user_id_str) {
+        logger.info(`Skipping mention ${mention.id_str}: Character has existing tweet in the conversation, and the mention is not a reply to the character`);
+        return true;
+      }
       if (!mention.id_str || !mention.user_id_str) {
         logger.info(`Skipping mention: Missing ID or user_id_str`);
         return true;
@@ -540,7 +548,7 @@ export class TwitterProvider {
       if (!mention.username) continue;
       const profile = await this.scraper.getProfile(mention.username);
       if (!profile.followersCount) continue;
-      if (profile.followersCount < 50) {
+      if (profile.followersCount < 5) {
         logger.info(
           `Mention ${mention.id} skipped, user ${mention.username} has less than 50 followers`,
         );
