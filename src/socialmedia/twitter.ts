@@ -340,9 +340,6 @@ export class TwitterProvider {
 
           const shouldSkip = await this.shouldSkipMention(mention);
           if (shouldSkip) {
-            logger.info(
-              `Skipping mention ${mention.idStr}: Already processed, too many interactions, or not a direct reply in conversation`,
-            );
             continue;
           }
 
@@ -469,6 +466,8 @@ export class TwitterProvider {
           `Skipping mention ${mention.idStr}: Too many interactions (${interactionCount}) with user ${mention.userIdStr}`,
         );
         return true;
+      } else {
+        logger.info(`Mention ${mention.idStr} has ${interactionCount} interactions with user ${mention.userIdStr}`);
       }
 
       // Skip if user is in dontTweetAt list
@@ -548,7 +547,7 @@ export class TwitterProvider {
       if (!mention.username) continue;
       const profile = await this.scraper.getProfile(mention.username);
       if (!profile.followersCount) continue;
-      if (profile.followersCount < 5) {
+      if (profile.followersCount < 50) {
         logger.info(
           `Mention ${mention.id} skipped, user ${mention.username} has less than 50 followers`,
         );
