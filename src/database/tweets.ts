@@ -1,25 +1,26 @@
-import { Tweet } from "../socialmedia/types";
+import { Tweet } from "./types";
 import { logger } from "../logger";
 import { db } from "../database";
+import { DbTweet } from "./types";
 
 export const saveTweet = (tweet: Tweet): void => {
   try {
     logger.debug({ tweet }, "Inserting tweet");
 
-    if (!tweet.id_str || 
-        !tweet.user_id_str || 
-        !tweet.user_screen_name || 
-        !tweet.full_text || 
-        !tweet.conversation_id_str || 
-        !tweet.tweet_created_at) {
+    if (!tweet.idStr || 
+        !tweet.userIdStr || 
+        !tweet.userScreenName || 
+        !tweet.fullText || 
+        !tweet.conversationIdStr || 
+        !tweet.tweetCreatedAt) {
       throw new Error(
         `Missing required fields for tweet: ${JSON.stringify({
-          id_str: !tweet.id_str,
-          user_id_str: !tweet.user_id_str,
-          user_screen_name: !tweet.user_screen_name,
-          full_text: !tweet.full_text,
-          conversation_id_str: !tweet.conversation_id_str,
-          tweet_created_at: !tweet.tweet_created_at,
+          idStr: !tweet.idStr,
+          userIdStr: !tweet.userIdStr,
+          userScreenName: !tweet.userScreenName,
+          fullText: !tweet.fullText,
+          conversationIdStr: !tweet.conversationIdStr,
+          tweetCreatedAt: !tweet.tweetCreatedAt,
         })}`,
       );
     }
@@ -39,15 +40,15 @@ export const saveTweet = (tweet: Tweet): void => {
     `);
 
     stmt.run(
-      tweet.id_str,
-      tweet.user_id_str,
-      tweet.user_screen_name,
-      tweet.full_text,
-      tweet.conversation_id_str,
-      tweet.tweet_created_at,
-      tweet.in_reply_to_status_id_str,
-      tweet.in_reply_to_user_id_str,
-      tweet.in_reply_to_screen_name,
+      tweet.idStr,
+      tweet.userIdStr,
+      tweet.userScreenName,
+      tweet.fullText,
+      tweet.conversationIdStr,
+      tweet.tweetCreatedAt,
+      tweet.inReplyToStatusIdStr,
+      tweet.inReplyToUserIdStr,
+      tweet.inReplyToScreenName,
     );
   
     logger.debug("Successfully inserted tweet");
@@ -60,37 +61,34 @@ export const saveTweet = (tweet: Tweet): void => {
   }
 };
 
-export const getTweetById = (id_str: string): Tweet | undefined => {
+export const getTweetById = (idStr: string): Tweet | undefined => {
   try {
-    logger.debug(`Checking for tweet ID: ${id_str}`);
+    logger.debug(`Checking for tweet ID: ${idStr}`);
 
     const stmt = db.prepare(`
       SELECT * FROM twitter_history 
       WHERE id_str = ?
-      LIMIT 1
     `);
-    const tweet = stmt.get(id_str) as Tweet;
+    const dbTweet = stmt.get(idStr) as DbTweet;
 
-    logger.debug({ tweet }, "Query result");
-
-    if (!tweet) {
+    if (!dbTweet) {
       logger.debug("No tweet found");
       return undefined;
     }
-
+    
     return {
-      id_str: tweet.id_str,
-      user_id_str: tweet.user_id_str,
-      user_screen_name: tweet.user_screen_name,
-      full_text: tweet.full_text,
-      conversation_id_str: tweet.conversation_id_str,
-      tweet_created_at: tweet.tweet_created_at,
-      in_reply_to_status_id_str: tweet.in_reply_to_status_id_str, 
-      in_reply_to_user_id_str: tweet.in_reply_to_user_id_str,
-      in_reply_to_screen_name: tweet.in_reply_to_screen_name,
+      idStr: dbTweet.id_str,
+      userIdStr: dbTweet.user_id_str,
+      userScreenName: dbTweet.user_screen_name,
+      fullText: dbTweet.full_text,
+      conversationIdStr: dbTweet.conversation_id_str,
+      tweetCreatedAt: dbTweet.tweet_created_at,
+      inReplyToStatusIdStr: dbTweet.in_reply_to_status_id_str,
+      inReplyToUserIdStr: dbTweet.in_reply_to_user_id_str,
+      inReplyToScreenName: dbTweet.in_reply_to_screen_name,
     };
   } catch (e) {
-    logger.error(`Error getting tweet by input ID ${id_str}:`, e);
+    logger.error(`Error getting tweet by input ID ${idStr}:`, e);
     if (e instanceof Error) {
       logger.error("Error stack:", e.stack);
     }
@@ -99,53 +97,67 @@ export const getTweetById = (id_str: string): Tweet | undefined => {
 };
 
 export const getTwitterHistory = (
-  user_id_str: string,
+  userIdStr: string,
   limit: number = 50,
-  conversation_id_str?: string,
+  conversationIdStr?: string,
 ): Tweet[] => {
   try {
     let query = `
       SELECT * FROM twitter_history 
       WHERE user_id_str = ?
     `;
-    const params: any[] = [user_id_str];
+    const params: any[] = [userIdStr];
 
-    if (conversation_id_str) {
+    if (conversationIdStr) {
       query += ` AND conversation_id_str = ?`;
-      params.push(conversation_id_str);
+      params.push(conversationIdStr);
     }
 
     query += ` ORDER BY tweet_created_at DESC LIMIT ?`;
     params.push(limit);
 
-    return db.prepare(query).all(...params) as Tweet[];
+    const dbTweets = db.prepare(query).all(...params) as DbTweet[];
+    return dbTweets.map(dbTweet => ({
+      idStr: dbTweet.id_str,
+      userIdStr: dbTweet.user_id_str,
+      userScreenName: dbTweet.user_screen_name,
+      fullText: dbTweet.full_text,
+      conversationIdStr: dbTweet.conversation_id_str,
+      tweetCreatedAt: dbTweet.tweet_created_at,
+      inReplyToStatusIdStr: dbTweet.in_reply_to_status_id_str,
+      inReplyToUserIdStr: dbTweet.in_reply_to_user_id_str,
+      inReplyToScreenName: dbTweet.in_reply_to_screen_name,
+    }));
   } catch (e) {
-    logger.error(`Error getting twitter history for user ${user_id_str}:`, e);
-    if (e instanceof Error) {
-      logger.error("Error stack:", e.stack);
-    }
+    logger.error(`Error getting twitter history for user ${userIdStr}:`, e);
     return [];
   }
 };
 
 export const getConversationHistory = (
-  conversation_id_str: string,
+  conversationIdStr: string,
   limit: number = 50,
 ): Tweet[] => {
   try {
-    return db
+    const dbTweets = db
       .prepare(
         `SELECT * FROM twitter_history WHERE conversation_id_str = ? ORDER BY tweet_created_at DESC LIMIT ?`,
       )
-      .all(conversation_id_str, limit) as Tweet[];
+      .all(conversationIdStr, limit) as DbTweet[];
+
+    return dbTweets.map(dbTweet => ({
+      idStr: dbTweet.id_str,
+      userIdStr: dbTweet.user_id_str,
+      userScreenName: dbTweet.user_screen_name,
+      fullText: dbTweet.full_text,
+      conversationIdStr: dbTweet.conversation_id_str,
+      tweetCreatedAt: dbTweet.tweet_created_at,
+      inReplyToStatusIdStr: dbTweet.in_reply_to_status_id_str,
+      inReplyToUserIdStr: dbTweet.in_reply_to_user_id_str,
+      inReplyToScreenName: dbTweet.in_reply_to_screen_name,
+    }));
   } catch (e) {
-    logger.error(
-      `Error getting conversation history for ${conversation_id_str}:`,
-      e,
-    );
-    if (e instanceof Error) {
-      logger.error("Error stack:", e.stack);
-    }
+    logger.error(`Error getting conversation history for ${conversationIdStr}:`, e);
     return [];
   }
 };
@@ -156,7 +168,7 @@ export const formatTwitterHistoryForPrompt = (
   try {
     return history
       .map(tweet => {
-        let text = `@${tweet.user_screen_name}: ${tweet.full_text}`;
+        let text = `@${tweet.userScreenName}: ${tweet.fullText}`;
         return text;
       })
       .join("\n\n");
@@ -170,27 +182,25 @@ export const formatTwitterHistoryForPrompt = (
 };
 
 export const getUserInteractionCount = (
-  user_id_str: string,
-  interaction_timeout: number,
+  userIdStr: string,
+  interactionTimeout: number,
 ): number => {
   try {
-    const cutoff = new Date(Date.now() - interaction_timeout).toISOString();
+    const cutoff = new Date(Date.now() - interactionTimeout).toISOString();
 
     const result = db
       .prepare(`
         SELECT COUNT(*) AS interaction_count FROM twitter_history 
         WHERE in_reply_to_user_id_str = ? 
         AND tweet_created_at > ?;
-      `,
-      )
-      .get(user_id_str, cutoff) as {
-      interaction_count: number;
-    };
-
-    return result.interaction_count;
+      `)
+      .get(userIdStr, cutoff) as {
+        interaction_count: number;
+      };
+    return result.interaction_count || 0;
   } catch (e) {
     logger.error(
-      `Error getting interaction count for user ${user_id_str}:`,
+      `Error getting interaction count for user ${userIdStr}:`,
       e,
     );
     if (e instanceof Error) {
