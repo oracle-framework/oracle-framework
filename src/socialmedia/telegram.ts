@@ -8,10 +8,13 @@ import { saveChatMessage } from "../database/chat-history";
 import { getChatHistory } from "../utils/prompt-context";
 
 export class TelegramProvider {
+  private static instances: Map<string, TelegramProvider> = new Map();
   private bot: Bot;
   private character: Character;
+  private active: boolean = false;
+  private activeChats: Set<string> = new Set();
 
-  constructor(character: Character) {
+  private constructor(character: Character) {
     if (!character.telegramApiKey) {
       throw new Error(`No Telegram API key found for ${character.username}`);
     }
@@ -19,7 +22,26 @@ export class TelegramProvider {
     this.bot = new Bot(character.telegramApiKey);
   }
 
+  public static async getInstance(character: Character): Promise<TelegramProvider> {
+    const key = character.username;
+    if (!TelegramProvider.instances.has(key)) {
+      const provider = new TelegramProvider(character);
+      TelegramProvider.instances.set(key, provider);
+    }
+    return TelegramProvider.instances.get(key)!;
+  }
+
+  // Add cleanup method for when we need to destroy the provider
+  public async cleanup() {
+    await this.stop();
+    TelegramProvider.instances.delete(this.character.username);
+  }
+
   private async handleReply(ctx: any) {
+    // Add chat to active chats when receiving a message
+    if (ctx.chat?.id) {
+      this.activeChats.add(ctx.chat.id.toString());
+    }
     logger.debug(
       `replying to ${ctx.from?.username} at ${new Date().toLocaleString()}`,
     );
@@ -188,9 +210,23 @@ export class TelegramProvider {
 
   public start() {
     logger.info(`Telegram provider started for ${this.character.username}`);
-
+    this.active = true;
     this.bot.on("message", this.handleReply.bind(this));
-
     this.bot.start();
   }
+
+  public async stop() {
+    this.active = false;
+    await this.bot.stop();
+    logger.info(`Telegram provider stopped for ${this.character.username}`);
+  }
+
+  public isActive(): boolean {
+    return this.active;
+  }
+
+  public getActiveChats(): string[] {
+    return Array.from(this.activeChats);
+  }
 }
+

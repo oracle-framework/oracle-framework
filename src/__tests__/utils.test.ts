@@ -80,9 +80,9 @@ describe("utils", () => {
 
     it("should return timer that can be cleared", () => {
       const callback = jest.fn();
-      const timer = randomInterval(callback, 1000, 2000);
+      const timer = randomInterval(callback, 1000, 5000);
 
-      clearTimeout(timer as NodeJS.Timeout);
+      clearTimeout(timer.timer);
       jest.runAllTimers();
 
       expect(callback).not.toHaveBeenCalled();
