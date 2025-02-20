@@ -11,10 +11,10 @@ export interface TwitterCreateTweetResponse {
                 rest_id: string;
                 legacy: {
                   screen_name: string;
-                }
-              }
-            }
-          }
+                };
+              };
+            };
+          };
           legacy: {
             created_at: string;
             conversation_id_str: string;
@@ -24,10 +24,10 @@ export interface TwitterCreateTweetResponse {
             in_reply_to_status_id_str?: string;
             in_reply_to_user_id_str?: string;
             in_reply_to_screen_name?: string;
-          }
-        }
-      }
-    }
+          };
+        };
+      };
+    };
   };
   errors?: Array<{
     message: string;

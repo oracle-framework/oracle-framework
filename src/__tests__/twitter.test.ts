@@ -2,8 +2,9 @@ import { TwitterProvider } from "../socialmedia/twitter";
 import { Character } from "../characters";
 import {
   formatTwitterHistoryForPrompt,
-  TwitterHistory,
+  getTwitterHistory,
 } from "../database/tweets";
+import { Tweet } from "../socialmedia/types";
 import { getAllTweets } from "./helpers/test-db";
 import { logger } from "../logger";
 import * as utils from "../utils";
@@ -63,7 +64,25 @@ const mockScraper = {
           create_tweet: {
             tweet_results: {
               result: {
-                rest_id: "mock-tweet-id-123",
+                rest_id: "1234567890",
+                core: {
+                  user_results: {
+                    result: {
+                      legacy: {
+                        screen_name: "test_user",
+                      },
+                    },
+                  },
+                },
+                legacy: {
+                  user_id_str: "09876543219",
+                  created_at: "2024-01-01T00:00:00Z",
+                  full_text: "Test tweet content",
+                  conversation_id_str: "5647382910",
+                  in_reply_to_status_id_str: "0183657492",
+                  in_reply_to_user_id_str: "1502693748",
+                  in_reply_to_screen_name: "test_user_two",
+                },
               },
             },
           },
@@ -73,7 +92,7 @@ const mockScraper = {
   getProfile: jest.fn().mockResolvedValue({ followersCount: 100 }),
   searchTweets: jest.fn(),
   fetchHomeTimeline: jest.fn().mockResolvedValue([]),
-  sendTweetWithMedia: jest.fn(),
+  getUserIdByScreenName: jest.fn(),
 };
 
 jest.mock("goat-x", () => ({
@@ -97,6 +116,7 @@ describe("TwitterProvider", () => {
   const mockCharacter: Character = {
     agentName: "Test Agent",
     username: "test_user",
+    user_id_str: "09876543219",
     twitterPassword: "test_password",
     twitterEmail: "test@example.com",
     telegramApiKey: "test-telegram-key",
@@ -141,15 +161,19 @@ describe("TwitterProvider", () => {
     it("should create initial post and set up interval", async () => {
       await twitterProvider.startTopicPosts();
 
-      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      const savedTweets = getAllTweets(testDb) as Tweet[];
       expect(savedTweets).toHaveLength(1);
 
       const savedTweet = savedTweets[0];
-      expect(savedTweet.tweet_id).toBe("mock-tweet-id-123");
-      expect(savedTweet.twitter_user_id).toBe("test_user");
-      expect(savedTweet.is_bot_tweet).toBe(1);
-      expect(savedTweet.tweet_text).toBe("Test tweet content");
-      expect(savedTweet.prompt).toBe("Test prompt");
+      expect(savedTweet.id_str).toBe("1234567890");
+      expect(savedTweet.user_id_str).toBe("09876543219");
+      expect(savedTweet.user_screen_name).toBe("test_user");
+      expect(savedTweet.full_text).toBe("Test tweet content");
+      expect(savedTweet.conversation_id_str).toBe("5647382910");
+      expect(savedTweet.tweet_created_at).toBe("2024-01-01T00:00:00Z");
+      expect(savedTweet.in_reply_to_status_id_str).toBe("0183657492");
+      expect(savedTweet.in_reply_to_user_id_str).toBe("1502693748");
+      expect(savedTweet.in_reply_to_screen_name).toBe("test_user_two");
 
       expect(mockRandomInterval).toHaveBeenCalledWith(
         expect.any(Function),
@@ -181,7 +205,7 @@ describe("TwitterProvider", () => {
         responseJson: errorResponse,
       });
 
-      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      const savedTweets = getAllTweets(testDb) as Tweet[];
       expect(savedTweets).toHaveLength(0);
     });
 
@@ -235,9 +259,9 @@ describe("TwitterProvider", () => {
 
       await twitterProvider.startTopicPosts();
 
-      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      const savedTweets = getAllTweets(testDb) as Tweet[];
       expect(savedTweets).toHaveLength(1);
-      expect(savedTweets[0].tweet_id).toBe("mock-tweet-id-with-image-123");
+      expect(savedTweets[0].id_str).toBe("mock-tweet-id-with-image-123");
     });
 
     it("should handle image generation failures", async () => {
@@ -265,9 +289,9 @@ describe("TwitterProvider", () => {
         "Falling back to sending tweet without image",
       );
 
-      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      const savedTweets = getAllTweets(testDb) as Tweet[];
       expect(savedTweets).toHaveLength(1);
-      expect(savedTweets[0].tweet_id).toBe("mock-tweet-id-123");
+      expect(savedTweets[0].id_str).toBe("mock-tweet-id-123");
     });
 
     it("should send proper cookies after restart", async () => {
@@ -305,7 +329,7 @@ describe("TwitterProvider", () => {
         "Generation failed",
       );
 
-      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      const savedTweets = getAllTweets(testDb) as Tweet[];
       expect(savedTweets).toHaveLength(0);
     });
 
@@ -330,7 +354,7 @@ describe("TwitterProvider", () => {
         expect.any(Error),
       );
 
-      const savedTweets = getAllTweets(testDb) as TwitterHistory[];
+      const savedTweets = getAllTweets(testDb) as Tweet[];
       expect(savedTweets).toHaveLength(0);
     });
   });
@@ -342,7 +366,7 @@ describe("TwitterProvider", () => {
         .prepare(
           `
         INSERT INTO twitter_history 
-          (tweet_id, twitter_user_id, username, tweet_text, created_at, is_bot_tweet, prompt)
+          (id_str, user_id_str, user_screen_name, full_text, conversation_id_str, tweet_created_at, in_reply_to_status_id_str, in_reply_to_user_id_str, in_reply_to_screen_name)
         VALUES 
           ('tweet1', 'test_user_id', 'test_user', 'First test tweet', '2024-01-01', 1, 'Test prompt'),
           ('tweet2', 'user2_id', 'user2', 'Original post', '2024-01-01', 0, 'Test prompt')
@@ -351,8 +375,8 @@ describe("TwitterProvider", () => {
         .run();
 
       // Get and format actual history from DB
-      const history = getAllTweets(testDb) as TwitterHistory[];
-      const formatted = formatTwitterHistoryForPrompt(history, true);
+      const history = getAllTweets(testDb) as Tweet[];
+      const formatted = formatTwitterHistoryForPrompt(history);
 
       // Verify format - should match template structure
       expect(formatted).toContain("@test_user: First test tweet");
@@ -361,7 +385,7 @@ describe("TwitterProvider", () => {
     });
 
     it("should handle empty history gracefully", () => {
-      const formatted = formatTwitterHistoryForPrompt([], true);
+      const formatted = formatTwitterHistoryForPrompt([]);
       expect(formatted).toBe("");
     });
 
@@ -378,9 +402,9 @@ describe("TwitterProvider", () => {
         )
         .run();
 
-      const history = getAllTweets(testDb) as TwitterHistory[];
+      const history = getAllTweets(testDb) as Tweet[];
       const formatted = formatTwitterHistoryForPrompt(
-        history.filter(t => !t.is_bot_tweet),
+        history.filter(t => t.user_id_str !== mockCharacter.user_id_str),
       );
 
       expect(formatted).not.toContain("test_user");
@@ -641,7 +665,7 @@ describe("TwitterProvider", () => {
       const timeline = await twitterProvider["getTimeline"]();
       const filteredTimeline = twitterProvider["filterTimeline"](timeline);
       expect(filteredTimeline).toHaveLength(1);
-      expect(filteredTimeline[0].text).toBe("normal tweet");
+      expect(filteredTimeline[0].full_text).toBe("normal tweet");
     });
 
     it("should handle tweet formatting edge cases", async () => {
@@ -661,7 +685,9 @@ describe("TwitterProvider", () => {
 
       const timeline = await twitterProvider["getTimeline"]();
       expect(timeline).toHaveLength(1);
-      expect(timeline[0].text).toBe("   tweet with\n\nextra whitespace\t\t");
+      expect(timeline[0].full_text).toBe(
+        "   tweet with\n\nextra whitespace\t\t",
+      );
     });
   });
 

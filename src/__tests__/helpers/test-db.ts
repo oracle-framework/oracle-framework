@@ -1,7 +1,7 @@
 import BetterSqlite3 from "better-sqlite3";
 import { Database } from "better-sqlite3";
 import { initializeSchema } from "../../database/schema";
-import { TwitterHistory } from "../../database/tweets";
+import { Tweet } from "../../database/types";
 import { logger } from "../../logger";
 
 // Create an in-memory database for testing
@@ -16,10 +16,10 @@ export const clearTwitterHistory = (db: Database) => {
   db.prepare("DELETE FROM twitter_history").run();
 };
 
-export const getAllTweets = (db: Database): TwitterHistory[] => {
+export const getAllTweets = (db: Database): Tweet[] => {
   try {
     const query = "SELECT * FROM twitter_history";
-    return db.prepare(query).all() as TwitterHistory[];
+    return db.prepare(query).all() as Tweet[];
   } catch (e) {
     logger.error("Error getting all tweets:", e);
     if (e instanceof Error) {
@@ -32,10 +32,10 @@ export const getAllTweets = (db: Database): TwitterHistory[] => {
 export const getTweetById = (
   db: Database,
   tweetId: string,
-): TwitterHistory | undefined => {
+): Tweet | undefined => {
   try {
     const query = "SELECT * FROM twitter_history WHERE tweet_id = ?";
-    return db.prepare(query).get(tweetId) as TwitterHistory | undefined;
+    return db.prepare(query).get(tweetId) as Tweet | undefined;
   } catch (e) {
     logger.error(`Error getting tweet by ID ${tweetId}:`, e);
     if (e instanceof Error) {

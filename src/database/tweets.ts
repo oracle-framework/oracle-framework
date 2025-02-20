@@ -7,12 +7,14 @@ export const saveTweet = (tweet: Tweet): void => {
   try {
     logger.debug({ tweet }, "Inserting tweet");
 
-    if (!tweet.idStr || 
-        !tweet.userIdStr || 
-        !tweet.userScreenName || 
-        !tweet.fullText || 
-        !tweet.conversationIdStr || 
-        !tweet.tweetCreatedAt) {
+    if (
+      !tweet.idStr ||
+      !tweet.userIdStr ||
+      !tweet.userScreenName ||
+      !tweet.fullText ||
+      !tweet.conversationIdStr ||
+      !tweet.tweetCreatedAt
+    ) {
       throw new Error(
         `Missing required fields for tweet: ${JSON.stringify({
           idStr: !tweet.idStr,
@@ -24,7 +26,7 @@ export const saveTweet = (tweet: Tweet): void => {
         })}`,
       );
     }
-    
+
     const stmt = db.prepare(`
       INSERT INTO twitter_history (
         id_str,
@@ -50,7 +52,7 @@ export const saveTweet = (tweet: Tweet): void => {
       tweet.inReplyToUserIdStr,
       tweet.inReplyToScreenName,
     );
-  
+
     logger.debug("Successfully inserted tweet");
   } catch (e) {
     logger.error("Error inserting tweet:", e);
@@ -75,7 +77,7 @@ export const getTweetById = (idStr: string): Tweet | undefined => {
       logger.debug("No tweet found");
       return undefined;
     }
-    
+
     return {
       idStr: dbTweet.id_str,
       userIdStr: dbTweet.user_id_str,
@@ -157,14 +159,15 @@ export const getConversationHistory = (
       inReplyToScreenName: dbTweet.in_reply_to_screen_name,
     }));
   } catch (e) {
-    logger.error(`Error getting conversation history for ${conversationIdStr}:`, e);
+    logger.error(
+      `Error getting conversation history for ${conversationIdStr}:`,
+      e,
+    );
     return [];
   }
 };
 
-export const formatTwitterHistoryForPrompt = (
-  history: Tweet[],
-): string => {
+export const formatTwitterHistoryForPrompt = (history: Tweet[]): string => {
   try {
     return history
       .map(tweet => {
@@ -189,20 +192,19 @@ export const getUserInteractionCount = (
     const cutoff = new Date(Date.now() - interactionTimeout).toISOString();
 
     const result = db
-      .prepare(`
+      .prepare(
+        `
         SELECT COUNT(*) AS interaction_count FROM twitter_history 
         WHERE in_reply_to_user_id_str = ? 
         AND tweet_created_at > ?;
-      `)
+      `,
+      )
       .get(userIdStr, cutoff) as {
-        interaction_count: number;
-      };
+      interaction_count: number;
+    };
     return result.interaction_count || 0;
   } catch (e) {
-    logger.error(
-      `Error getting interaction count for user ${userIdStr}:`,
-      e,
-    );
+    logger.error(`Error getting interaction count for user ${userIdStr}:`, e);
     if (e instanceof Error) {
       logger.error("Error stack:", e.stack);
     }

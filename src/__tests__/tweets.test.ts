@@ -32,17 +32,15 @@ describe("Twitter Database Operations", () => {
         tweet_created_at: new Date().toISOString(),
         full_text: "", // also empty to match error message
         user_id_str: "user123",
-        conversation_id_str: "23452435", 
+        conversation_id_str: "23452435",
         in_reply_to_status_id_str: "1234567890",
         in_reply_to_user_id_str: "", // not required field
-        in_reply_to_screen_name: "",  // not required field
+        in_reply_to_screen_name: "", // not required field
       };
 
       const errorMsg =
         'Missing required fields for tweet: {"id_str":true,"user_id_str":false,"user_screen_name":true,"full_text":true,"conversation_id_str":false,"tweet_created_at":false}';
-      expect(() => saveTweet(invalidTweet as Tweet)).toThrow(
-        errorMsg,
-      );
+      expect(() => saveTweet(invalidTweet as Tweet)).toThrow(errorMsg);
       expect(logger.error).toHaveBeenCalledWith(
         "Error inserting tweet:",
         expect.any(Error),
@@ -92,7 +90,6 @@ describe("Twitter Database Operations", () => {
       const now = new Date();
       const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-      
       // Insert test data
       const stmt = testDb.prepare(`
         INSERT INTO twitter_history (
@@ -110,7 +107,7 @@ describe("Twitter Database Operations", () => {
       stmt.run(
         "192837465748392",
         "756483928659345",
-        'testuser99',
+        "testuser99",
         "test tweet",
         "132344556667890",
         now.toISOString(),
@@ -122,7 +119,7 @@ describe("Twitter Database Operations", () => {
       stmt.run(
         "192837465748392",
         "756483928659345",
-        'testuser99',
+        "testuser99",
         "test tweet",
         "132344556667890",
         hourAgo.toISOString(),
