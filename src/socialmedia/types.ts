@@ -1,20 +1,36 @@
-export type CleanedTweet = {
-  id: string;
-  created_at: Date;
-  text: string;
-  user_id_str: string;
-  user: string;
-};
-
-export interface Tweet {
-  input_tweet_id: string;
-  input_tweet_created_at: string;
-  input_tweet_text: string;
-  input_tweet_user_id: string;
-  input_tweet_username?: string; // Twitter user's username
-  new_tweet_id: string;
-  prompt: string;
-  new_tweet_text: string;
-  created_at?: string;
-  conversation_id?: string;
+export interface TwitterCreateTweetResponse {
+  data?: {
+    create_tweet: {
+      tweet_results: {
+        result: {
+          rest_id: string;
+          core: {
+            user_results: {
+              result: {
+                id: string;
+                rest_id: string;
+                legacy: {
+                  screen_name: string;
+                };
+              };
+            };
+          };
+          legacy: {
+            created_at: string;
+            conversation_id_str: string;
+            full_text: string;
+            user_id_str: string;
+            id_str: string;
+            in_reply_to_status_id_str?: string;
+            in_reply_to_user_id_str?: string;
+            in_reply_to_screen_name?: string;
+          };
+        };
+      };
+    };
+  };
+  errors?: Array<{
+    message: string;
+    code: string;
+  }>;
 }

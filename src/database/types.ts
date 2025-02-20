@@ -1,12 +1,28 @@
 export interface Tweet {
-  input_tweet_id: string;
-  input_tweet_created_at: string;
-  input_tweet_text: string;
-  input_tweet_user_id: string;
-  new_tweet_id: string;
+  idStr: string;
+  userIdStr: string;
+  userScreenName: string;
+  fullText: string;
+  conversationIdStr: string;
+  tweetCreatedAt: string;
+  inReplyToStatusIdStr?: string;
+  inReplyToUserIdStr?: string;
+  inReplyToScreenName?: string;
+}
+
+export interface DbTweet {
+  id_str: string;
+  user_id_str: string;
+  user_screen_name: string;
+  full_text: string;
+  conversation_id_str: string;
+  tweet_created_at: string;
+  in_reply_to_status_id_str?: string;
+  in_reply_to_user_id_str?: string;
+  in_reply_to_screen_name?: string;
+}
+
+export interface Prompt {
+  tweetIdStr: string;
   prompt: string;
-  new_tweet_text: string;
-  created_at?: string;
-  in_reply_to_status_id?: string;
-  conversation_id?: string;
 }
