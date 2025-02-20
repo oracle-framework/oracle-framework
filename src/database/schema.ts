@@ -85,4 +85,25 @@ export const initializeSchema = (db: Database) => {
       );
     `);
   }
+
+    // Check if promptstable exists
+    const promptsTableExists = db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='prompts'",
+    )
+    .get();
+
+  if (!promptsTableExists) {
+    // Prompts Table
+    db.exec(`
+      CREATE TABLE prompts (
+        twitter_history_id_str VARCHAR(50) NOT NULL,              
+        prompt TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_prompts_twitter_history_id_str ON prompts(twitter_history_id_str);
+    `);
+  }
 };
+
+

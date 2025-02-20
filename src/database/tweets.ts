@@ -1,7 +1,6 @@
-import { Tweet } from "./types";
+import { Tweet, Prompt, DbTweet } from "./types";
 import { logger } from "../logger";
 import { db } from "../database";
-import { DbTweet } from "./types";
 
 export const saveTweet = (tweet: Tweet): void => {
   try {
@@ -56,6 +55,44 @@ export const saveTweet = (tweet: Tweet): void => {
     logger.debug("Successfully inserted tweet");
   } catch (e) {
     logger.error("Error inserting tweet:", e);
+    if (e instanceof Error) {
+      logger.error("Error stack:", e.stack);
+    }
+    throw e;
+  }
+};
+
+export const savePrompt = (prompt: Prompt): void => {
+  try {
+    logger.debug({ prompt }, "Inserting prompt");
+
+    if (
+      !prompt.twitterHistoryIdStr ||
+      !prompt.prompt
+    ) {
+      throw new Error(
+        `Missing required fields for prompt: ${JSON.stringify({
+          twitterHistoryIdStr: !prompt.twitterHistoryIdStr,
+          prompt: !prompt.prompt,
+        })}`,
+      );
+    }
+
+    const stmt = db.prepare(`
+      INSERT INTO prompts (
+        twitter_history_id_str,
+        prompt
+      ) VALUES (?, ?);
+    `);
+
+    stmt.run(
+      prompt.twitterHistoryIdStr,
+      prompt.prompt,
+    );
+
+    logger.debug("Successfully inserted prompt");
+  } catch (e) {
+    logger.error("Error inserting prompt:", e);
     if (e instanceof Error) {
       logger.error("Error stack:", e.stack);
     }

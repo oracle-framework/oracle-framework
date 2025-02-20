@@ -13,12 +13,13 @@ import { generateImageForTweet } from "../images";
 import { logger } from "../logger";
 import { randomInterval } from "../utils";
 import { TwitterCreateTweetResponse } from "./types";
-import { Tweet } from "../database/types";
+import { Tweet, Prompt } from "../database/types";
 import {
   formatTwitterHistoryForPrompt,
   getConversationHistory,
   getTwitterHistory,
   getUserInteractionCount,
+  savePrompt,
 } from "../database/tweets";
 import {
   storeTweetEmbedding,
@@ -248,7 +249,12 @@ export class TwitterProvider {
         };
 
         saveTweet(tweet);
-        logger.info("A row was inserted into the database.\n");
+        logger.info("A row was inserted into twitter_history.");
+        savePrompt({
+          twitterHistoryIdStr: tweet.idStr,
+          prompt: completion.prompt,
+        });
+        logger.info("A row was inserted into prompts.");
         // Store tweet embedding
         const tweetTextSummary = await generateTweetSummary(
           this.character,
@@ -263,7 +269,7 @@ export class TwitterProvider {
             new Date().toISOString(),
           );
         }
-        logger.info("A row was inserted into the database.\n");
+        logger.info("A row was inserted into vector_tweets.");
       }
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
@@ -341,6 +347,7 @@ export class TwitterProvider {
         inReplyToUserIdStr: mostRecentTweet.inReplyToUserIdStr || undefined,
         inReplyToScreenName: mostRecentTweet.inReplyToScreenName || undefined,
       });
+      logger.info("in_reply_to tweet was inserted into twitter_history.");
       // save reply tweet
       saveTweet({
         idStr: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
@@ -368,6 +375,13 @@ export class TwitterProvider {
           newTweetJson.data.create_tweet.tweet_results.result.legacy
             .in_reply_to_screen_name || undefined,
       });
+      logger.info("reply tweet was inserted into twitter_history.");
+      //save prompt
+      savePrompt({
+        twitterHistoryIdStr: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
+        prompt: completion.prompt,
+      });
+      logger.info("reply tweet prompt was inserted into prompts.");
     } catch (e: any) {
       logger.error(`There was an error: ${e}`);
       logger.error("e.message", e.message);
@@ -460,6 +474,7 @@ export class TwitterProvider {
             inReplyToUserIdStr: mention.inReplyToUserIdStr || undefined,
             inReplyToScreenName: mention.inReplyToScreenName || undefined,
           });
+          logger.info("mention was inserted into twitter_history.");
           //save reply tweet
           saveTweet({
             idStr: newTweetId,
@@ -488,6 +503,13 @@ export class TwitterProvider {
               responseJson.data.create_tweet.tweet_results.result.legacy
                 .in_reply_to_screen_name || undefined,
           });
+          logger.info("reply tweet was inserted into twitter_history.");
+          //save prompt
+          savePrompt({
+            twitterHistoryIdStr: newTweetId,
+            prompt: completion.prompt,
+          });
+          logger.info("reply tweet prompt was inserted into prompts.");
         } catch (e) {
           logger.error(`Error processing mention ${mention.idStr}:`, e);
           if (e instanceof Error) {

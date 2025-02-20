@@ -21,3 +21,8 @@ export interface DbTweet {
   in_reply_to_user_id_str?: string;
   in_reply_to_screen_name?: string;
 }
+
+export interface Prompt {
+  twitterHistoryIdStr: string;
+  prompt: string;
+}
