@@ -15,6 +15,7 @@ import {
   handleBannedAndLengthRetries,
 } from "../completions";
 import * as completions from "../completions";
+import { Scraper } from "goat-x";
 
 // Mock the logger
 jest.mock("../logger", () => ({
@@ -93,6 +94,7 @@ describe("TwitterProvider", () => {
   let twitterProvider: TwitterProvider;
   let testDb: Database;
   let mockRandomInterval: jest.SpyInstance;
+  let mockScraper: jest.Mocked<Scraper>;
 
   const mockCharacter: Character = {
     agentName: "Test Agent",
@@ -115,21 +117,26 @@ describe("TwitterProvider", () => {
     testDb = db;
   });
 
-  beforeEach(() => {
-    // Clear any existing data
-    testDb.prepare("DELETE FROM twitter_history").run();
+  beforeEach(async () => {
+    mockScraper = {
+      login: jest.fn(),
+      getCookies: jest.fn(),
+      setCookies: jest.fn(),
+      sendTweet: jest.fn(),
+      searchTweets: jest.fn(),
+      getProfile: jest.fn(),
+      fetchHomeTimeline: jest.fn(),
+    } as any;
 
-    // Mock randomInterval
-    mockRandomInterval = jest
-      .spyOn(utils, "randomInterval")
-      .mockImplementation(() => {
-        return setTimeout(() => {}, 0);
+    jest.spyOn(utils, "randomInterval")
+      .mockImplementation((callback, lowerBoundMs, upperBoundMs) => {
+        const timer = setTimeout(callback, 0);
+        return { timer, currentInterval: lowerBoundMs };
       });
 
-    twitterProvider = new TwitterProvider(mockCharacter);
+    twitterProvider = await TwitterProvider.getInstance(mockCharacter);
 
     jest.useFakeTimers();
-    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -204,7 +211,7 @@ describe("TwitterProvider", () => {
           imagePromptChance: 1,
         },
       };
-      twitterProvider = new TwitterProvider(characterWithImages);
+      twitterProvider = await TwitterProvider.getInstance(characterWithImages);
 
       const { generateImageForTweet } = require("../images");
       const imageBuffer = Buffer.from("test image data");
@@ -248,7 +255,7 @@ describe("TwitterProvider", () => {
           imagePromptChance: 1,
         },
       };
-      twitterProvider = new TwitterProvider(characterWithImages);
+      twitterProvider = await TwitterProvider.getInstance(characterWithImages);
 
       const { generateImageForTweet } = require("../images");
       generateImageForTweet.mockRejectedValueOnce(
@@ -317,7 +324,7 @@ describe("TwitterProvider", () => {
           imagePromptChance: 1,
         },
       };
-      twitterProvider = new TwitterProvider(characterWithImages);
+      twitterProvider = await TwitterProvider.getInstance(characterWithImages);
 
       mockScraper.sendTweet
         .mockRejectedValueOnce(new Error("API Error"))
@@ -478,7 +485,7 @@ describe("TwitterProvider", () => {
       },
     };
 
-    const provider = new TwitterProvider(testCharacter);
+    const provider = await TwitterProvider.getInstance(testCharacter);
 
     mockScraper.searchTweets.mockResolvedValue([
       {
@@ -699,7 +706,7 @@ describe("TwitterProvider", () => {
         },
       };
 
-      const blockedProvider = new TwitterProvider(blockedCharacter);
+      const blockedProvider = await TwitterProvider.getInstance(blockedCharacter);
 
       const mention = {
         id: "mention1",
@@ -882,7 +889,7 @@ describe("TwitterProvider", () => {
           imagePromptChance: 1,
         },
       };
-      twitterProvider = new TwitterProvider(characterWithImages);
+      twitterProvider = await TwitterProvider.getInstance(characterWithImages);
 
       const { generateImageForTweet } = require("../images");
       generateImageForTweet.mockResolvedValueOnce(

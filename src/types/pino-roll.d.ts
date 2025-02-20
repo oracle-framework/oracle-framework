@@ -1,15 +1,4 @@
-declare module "pino-roll" {
-  function rotate(
-    filename: string,
-    options: {
-      size?: string;
-      interval?: string;
-      compress?: boolean;
-      maxFiles?: number;
-      mkdir?: boolean;
-      dateFormat?: string;
-      nameFormat?: string;
-    },
-  ): void;
+declare module 'pino-roll' {
+  const rotate: any;
   export default rotate;
 }

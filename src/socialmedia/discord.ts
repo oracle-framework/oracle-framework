@@ -9,6 +9,7 @@ import { getChatHistory } from "../utils/prompt-context";
 export class DiscordProvider {
   private client: Client;
   private character: Character;
+  private active: boolean = false;
 
   constructor(character: Character) {
     if (!character.discordApiKey) {
@@ -91,6 +92,7 @@ export class DiscordProvider {
 
   public async start() {
     this.client.once("ready", () => {
+      this.active = true;
       logger.info(`Logged in as ${this.client.user?.tag}!`);
     });
 
@@ -101,7 +103,19 @@ export class DiscordProvider {
   }
 
   public async stop() {
+    this.active = false;
     await this.client.destroy();
     logger.info(`Discord bot stopped for ${this.character.username}`);
+  }
+
+  public isActive(): boolean {
+    return this.active && this.client.isReady();
+  }
+
+  public getConnectedServers(): string[] {
+    if (!this.client.isReady()) {
+      return [];
+    }
+    return Array.from(this.client.guilds.cache.values()).map(guild => guild.name);
   }
 }

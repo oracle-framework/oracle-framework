@@ -1,25 +1,15 @@
 {
   "compilerOptions": {
-    "lib": ["ES2022"],
-    "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "target": "es2020",
+    "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-
-    // Best practices
     "strict": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-
-    // Some stricter flags
-    "noPropertyAccessFromIndexSignature": true
+    "forceConsistentCasingInFileNames": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["src/__tests__/**/*", "node_modules"]
 }
