@@ -23,6 +23,6 @@ export interface DbTweet {
 }
 
 export interface Prompt {
-  twitterHistoryIdStr: string;
+  tweetIdStr: string;
   prompt: string;
 }

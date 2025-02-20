@@ -2,16 +2,16 @@ import { Database } from "better-sqlite3";
 
 export const initializeSchema = (db: Database) => {
   // Check if twitter_history table exists
-  const twitterTableExists = db
+  const tweetsTableExists = db
     .prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='twitter_history'",
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='tweets'",
     )
     .get();
 
-  if (!twitterTableExists) {
-    // Twitter History Table
+  if (!tweetsTableExists) {
+    // Tweets Table
     db.exec(`
-      CREATE TABLE twitter_history (
+      CREATE TABLE tweets (
         id_str VARCHAR(50) NOT NULL,              
         user_id_str VARCHAR(50) NOT NULL,         
         user_screen_name VARCHAR(20) NOT NULL,    
@@ -23,12 +23,12 @@ export const initializeSchema = (db: Database) => {
         in_reply_to_screen_name VARCHAR(20)       
       );
 
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_id_str ON twitter_history(id_str);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_user_id_str ON twitter_history(user_id_str);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_conversation_id_str ON twitter_history(conversation_id_str);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_tweet_created_at ON twitter_history(tweet_created_at);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_in_reply_to_status_id_str ON twitter_history(in_reply_to_status_id_str);
-      CREATE INDEX IF NOT EXISTS idx_twitter_history_in_reply_to_user_id_str ON twitter_history(in_reply_to_user_id_str);
+      CREATE INDEX IF NOT EXISTS idx_tweets_id_str ON tweets(id_str);
+      CREATE INDEX IF NOT EXISTS idx_tweets_user_id_str ON tweets(user_id_str);
+      CREATE INDEX IF NOT EXISTS idx_tweets_conversation_id_str ON tweets(conversation_id_str);
+      CREATE INDEX IF NOT EXISTS idx_tweets_tweet_created_at ON tweets(tweet_created_at);
+      CREATE INDEX IF NOT EXISTS idx_tweets_in_reply_to_status_id_str ON tweets(in_reply_to_status_id_str);
+      CREATE INDEX IF NOT EXISTS idx_tweets_in_reply_to_user_id_str ON tweets(in_reply_to_user_id_str);
     `);
   }
 
@@ -86,8 +86,8 @@ export const initializeSchema = (db: Database) => {
     `);
   }
 
-    // Check if promptstable exists
-    const promptsTableExists = db
+  // Check if promptstable exists
+  const promptsTableExists = db
     .prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='prompts'",
     )
@@ -97,13 +97,11 @@ export const initializeSchema = (db: Database) => {
     // Prompts Table
     db.exec(`
       CREATE TABLE prompts (
-        twitter_history_id_str VARCHAR(50) NOT NULL,              
+        tweet_id_str VARCHAR(50) NOT NULL,              
         prompt TEXT NOT NULL
       );
 
-      CREATE INDEX IF NOT EXISTS idx_prompts_twitter_history_id_str ON prompts(twitter_history_id_str);
+      CREATE INDEX IF NOT EXISTS idx_prompts_tweet_id_str ON prompts(tweet_id_str);
     `);
   }
 };
-
-

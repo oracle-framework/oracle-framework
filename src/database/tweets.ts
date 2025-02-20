@@ -27,7 +27,7 @@ export const saveTweet = (tweet: Tweet): void => {
     }
 
     const stmt = db.prepare(`
-      INSERT INTO twitter_history (
+      INSERT INTO tweets (
         id_str,
         user_id_str,
         user_screen_name,
@@ -66,13 +66,10 @@ export const savePrompt = (prompt: Prompt): void => {
   try {
     logger.debug({ prompt }, "Inserting prompt");
 
-    if (
-      !prompt.twitterHistoryIdStr ||
-      !prompt.prompt
-    ) {
+    if (!prompt.tweetIdStr || !prompt.prompt) {
       throw new Error(
         `Missing required fields for prompt: ${JSON.stringify({
-          twitterHistoryIdStr: !prompt.twitterHistoryIdStr,
+          tweetIdStr: !prompt.tweetIdStr,
           prompt: !prompt.prompt,
         })}`,
       );
@@ -80,15 +77,12 @@ export const savePrompt = (prompt: Prompt): void => {
 
     const stmt = db.prepare(`
       INSERT INTO prompts (
-        twitter_history_id_str,
+        tweet_id_str,
         prompt
       ) VALUES (?, ?);
     `);
 
-    stmt.run(
-      prompt.twitterHistoryIdStr,
-      prompt.prompt,
-    );
+    stmt.run(prompt.tweetIdStr, prompt.prompt);
 
     logger.debug("Successfully inserted prompt");
   } catch (e) {
@@ -105,7 +99,7 @@ export const getTweetById = (idStr: string): Tweet | undefined => {
     logger.debug(`Checking for tweet ID: ${idStr}`);
 
     const stmt = db.prepare(`
-      SELECT * FROM twitter_history 
+      SELECT * FROM tweets 
       WHERE id_str = ?
     `);
     const dbTweet = stmt.get(idStr) as DbTweet;
@@ -142,7 +136,7 @@ export const getTwitterHistory = (
 ): Tweet[] => {
   try {
     let query = `
-      SELECT * FROM twitter_history 
+      SELECT * FROM tweets 
       WHERE user_id_str = ?
     `;
     const params: any[] = [userIdStr];
@@ -180,7 +174,7 @@ export const getConversationHistory = (
   try {
     const dbTweets = db
       .prepare(
-        `SELECT * FROM twitter_history WHERE conversation_id_str = ? ORDER BY tweet_created_at DESC LIMIT ?`,
+        `SELECT * FROM tweets WHERE conversation_id_str = ? ORDER BY tweet_created_at DESC LIMIT ?`,
       )
       .all(conversationIdStr, limit) as DbTweet[];
 
@@ -231,7 +225,7 @@ export const getUserInteractionCount = (
     const result = db
       .prepare(
         `
-        SELECT COUNT(*) AS interaction_count FROM twitter_history 
+        SELECT COUNT(*) AS interaction_count FROM tweets 
         WHERE in_reply_to_user_id_str = ? 
         AND tweet_created_at > ?;
       `,

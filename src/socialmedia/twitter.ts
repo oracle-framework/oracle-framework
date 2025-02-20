@@ -249,9 +249,9 @@ export class TwitterProvider {
         };
 
         saveTweet(tweet);
-        logger.info("A row was inserted into twitter_history.");
+        logger.info("A row was inserted into tweets.");
         savePrompt({
-          twitterHistoryIdStr: tweet.idStr,
+          tweetIdStr: tweet.idStr,
           prompt: completion.prompt,
         });
         logger.info("A row was inserted into prompts.");
@@ -347,7 +347,7 @@ export class TwitterProvider {
         inReplyToUserIdStr: mostRecentTweet.inReplyToUserIdStr || undefined,
         inReplyToScreenName: mostRecentTweet.inReplyToScreenName || undefined,
       });
-      logger.info("in_reply_to tweet was inserted into twitter_history.");
+      logger.info("in_reply_to tweet was inserted into tweets.");
       // save reply tweet
       saveTweet({
         idStr: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
@@ -375,10 +375,11 @@ export class TwitterProvider {
           newTweetJson.data.create_tweet.tweet_results.result.legacy
             .in_reply_to_screen_name || undefined,
       });
-      logger.info("reply tweet was inserted into twitter_history.");
+      logger.info("reply tweet was inserted into tweets.");
       //save prompt
       savePrompt({
-        twitterHistoryIdStr: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
+        tweetIdStr:
+          newTweetJson.data.create_tweet.tweet_results.result.rest_id,
         prompt: completion.prompt,
       });
       logger.info("reply tweet prompt was inserted into prompts.");
@@ -474,7 +475,7 @@ export class TwitterProvider {
             inReplyToUserIdStr: mention.inReplyToUserIdStr || undefined,
             inReplyToScreenName: mention.inReplyToScreenName || undefined,
           });
-          logger.info("mention was inserted into twitter_history.");
+          logger.info("mention was inserted into tweets.");
           //save reply tweet
           saveTweet({
             idStr: newTweetId,
@@ -503,10 +504,10 @@ export class TwitterProvider {
               responseJson.data.create_tweet.tweet_results.result.legacy
                 .in_reply_to_screen_name || undefined,
           });
-          logger.info("reply tweet was inserted into twitter_history.");
+          logger.info("reply tweet was inserted into tweets.");
           //save prompt
           savePrompt({
-            twitterHistoryIdStr: newTweetId,
+            tweetIdStr: newTweetId,
             prompt: completion.prompt,
           });
           logger.info("reply tweet prompt was inserted into prompts.");
@@ -566,7 +567,7 @@ export class TwitterProvider {
         return true;
       }
 
-      // Get interaction count from twitter_history
+      // Get interaction count from tweets
       const interactionCount = getUserInteractionCount(
         mention.userIdStr,
         this.INTERACTION_TIMEOUT,
