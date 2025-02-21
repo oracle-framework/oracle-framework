@@ -40,6 +40,7 @@ export type AudioGenerationBehavior = {
 
 export type Character = {
   agentName: string;
+  userIdStr: string;
   username: string; // keep it all lowercase
   twitterPassword: string;
   twitterEmail?: string;
