@@ -18,13 +18,19 @@ const requiredEnvVars = ["LLM_PROVIDER_URL", "LLM_PROVIDER_API_KEY"];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
-  logger.error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);
+  logger.error(
+    `Missing required environment variables: ${missingEnvVars.join(", ")}`,
+  );
   process.exit(1);
 }
 
 logger.info("Environment variables loaded successfully");
-logger.info(`LLM_PROVIDER_API_KEY: ${process.env.LLM_PROVIDER_API_KEY ? "present" : "missing"}`);
-logger.info(`LLM_PROVIDER_URL: ${process.env.LLM_PROVIDER_URL ? "present" : "missing"}`);
+logger.info(
+  `LLM_PROVIDER_API_KEY: ${process.env.LLM_PROVIDER_API_KEY ? "present" : "missing"}`,
+);
+logger.info(
+  `LLM_PROVIDER_URL: ${process.env.LLM_PROVIDER_URL ? "present" : "missing"}`,
+);
 
 export const config = {
   llmProvider: {
@@ -40,4 +46,4 @@ export const config = {
   logging: {
     level: process.env.LOG_LEVEL || "info",
   },
-}; 
+};
