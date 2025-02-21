@@ -1,32 +1,22 @@
-import dotenv from "dotenv";
+// Load environment first
+import { config } from "./config/env";
+
+// Then load logger and other imports
+import { logger } from "./logger";
 import { Command } from "commander";
 import * as commander from "commander";
 import { buildServer, startServer } from "./server";
 import { FastifyInstance } from "fastify";
 import { setupRoutes } from "./routes";
-import { logger } from "./logger";
-import * as path from "path";
 import { CliProvider } from "./socialmedia/cli";
 import { DiscordProvider } from "./socialmedia/discord";
 import { TelegramProvider } from "./socialmedia/telegram";
 import { TwitterProvider } from "./socialmedia/twitter";
 import { getCharacters, initializeCharacters } from "./characters/index";
 
-// Load environment variables at startup
-logger.info("Loading environment variables...");
-logger.info(`Current working directory: ${process.cwd()}`);
-logger.info(`Looking for .env file at: ${path.join(process.cwd(), ".env")}`);
-const result = dotenv.config();
-if (result.error) {
-  logger.error("Error loading .env file:", result.error);
-  process.exit(1); // Exit if we can't load environment variables
-} else {
-  logger.info(".env file loaded successfully");
-  logger.info("Loaded environment variables:");
-  logger.info(
-    `AGENT_TELEGRAM_API_KEY: ${process.env.AGENT_TELEGRAM_API_KEY ? "present" : "missing"}`,
-  );
-}
+// Test logging levels
+logger.debug("Debug log test");
+logger.info("Info log test");
 
 // Initialize characters after environment variables are loaded
 const CHARACTERS = initializeCharacters();

@@ -20,7 +20,7 @@ const baseLogger = pino({
 });
 
 // Fix: Ensure pretty logging in development
-const logger = isDevelopment
+export const logger = isDevelopment
   ? pino({
       level: process.env["LOG_LEVEL"] || "info",
       transport: {
@@ -55,6 +55,3 @@ if (!isDevelopment) {
     });
   });
 }
-
-// Named export so your existing imports don't break
-export { logger };
