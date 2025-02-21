@@ -171,7 +171,6 @@ export class TwitterProvider {
     if (remainingTime <= 0) return 0;
 
     return remainingTime;
-
   }
 
   public async startTopicPosts() {
@@ -635,8 +634,7 @@ export class TwitterProvider {
       logger.info("reply tweet was inserted into tweets.");
       //save prompt
       savePrompt({
-        tweetIdStr:
-          newTweetJson.data.create_tweet.tweet_results.result.rest_id,
+        tweetIdStr: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
         prompt: completion.prompt,
       });
       logger.info("reply tweet prompt was inserted into prompts.");
