@@ -24,7 +24,14 @@ export async function storeTweetEmbedding(
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(username, tweetId, tweetText, tweetSummary, embeddingArray.join(","), timestamp);
+    stmt.run(
+      username,
+      tweetId,
+      tweetText,
+      tweetSummary,
+      embeddingArray.join(","),
+      timestamp,
+    );
     logger.info(`Stored embedding for tweet ${tweetId}`);
   } catch (error) {
     logger.error("Error storing tweet embedding:", error);

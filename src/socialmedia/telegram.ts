@@ -22,7 +22,9 @@ export class TelegramProvider {
     this.bot = new Bot(character.telegramApiKey);
   }
 
-  public static async getInstance(character: Character): Promise<TelegramProvider> {
+  public static async getInstance(
+    character: Character,
+  ): Promise<TelegramProvider> {
     const key = character.username;
     if (!TelegramProvider.instances.has(key)) {
       const provider = new TelegramProvider(character);
@@ -229,4 +231,3 @@ export class TelegramProvider {
     return Array.from(this.activeChats);
   }
 }
-

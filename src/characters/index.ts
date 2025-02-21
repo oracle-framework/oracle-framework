@@ -67,12 +67,12 @@ function loadCharacterConfigs(): Character[] {
   // Ensure environment variables are loaded
   dotenv.config();
 
-  logger.info('Starting to load character configs...');
+  logger.info("Starting to load character configs...");
   const characterFile = fs.readFileSync(
     path.join(__dirname, "characters.json"),
     "utf8",
   );
-  logger.info('Read characters.json file');
+  logger.info("Read characters.json file");
   const configs = JSON.parse(characterFile);
 
   // Ensure configs is an array
@@ -83,18 +83,28 @@ function loadCharacterConfigs(): Character[] {
   }
 
   // Debug log for environment variables
-  logger.info('Environment variables state:');
-  logger.info(`AGENT_TELEGRAM_API_KEY: ${process.env.AGENT_TELEGRAM_API_KEY ? 'present' : 'missing'}`);
-  logger.info(`AGENT_TWITTER_PASSWORD: ${process.env.AGENT_TWITTER_PASSWORD ? 'present' : 'missing'}`);
-  logger.info(`AGENT_TWITTER_EMAIL: ${process.env.AGENT_TWITTER_EMAIL ? 'present' : 'missing'}`);
-  logger.info(`AGENT_DISCORD_API_KEY: ${process.env.AGENT_DISCORD_API_KEY ? 'present' : 'missing'}`);
+  logger.info("Environment variables state:");
+  logger.info(
+    `AGENT_TELEGRAM_API_KEY: ${process.env.AGENT_TELEGRAM_API_KEY ? "present" : "missing"}`,
+  );
+  logger.info(
+    `AGENT_TWITTER_PASSWORD: ${process.env.AGENT_TWITTER_PASSWORD ? "present" : "missing"}`,
+  );
+  logger.info(
+    `AGENT_TWITTER_EMAIL: ${process.env.AGENT_TWITTER_EMAIL ? "present" : "missing"}`,
+  );
+  logger.info(
+    `AGENT_DISCORD_API_KEY: ${process.env.AGENT_DISCORD_API_KEY ? "present" : "missing"}`,
+  );
 
   // Add environment variables to each character config
   return configs.map(config => {
     const telegramApiKey = process.env.AGENT_TELEGRAM_API_KEY || "";
     logger.info(`Processing character ${config.username}:`);
-    logger.info(`- Telegram API key: ${telegramApiKey ? 'present' : 'missing'}`);
-    
+    logger.info(
+      `- Telegram API key: ${telegramApiKey ? "present" : "missing"}`,
+    );
+
     return {
       ...config,
       twitterPassword: process.env.AGENT_TWITTER_PASSWORD || "",

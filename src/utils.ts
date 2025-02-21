@@ -27,7 +27,7 @@ export const randomInterval = (
   callback: () => void,
   lowerBoundMs: number,
   upperBoundMs: number,
-  initialIntervalMs?: number
+  initialIntervalMs?: number,
 ): RandomIntervalHandle => {
   if (lowerBoundMs > upperBoundMs) {
     throw new Error("Lower bound cannot be greater than upper bound.");

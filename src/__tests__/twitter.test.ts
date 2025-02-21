@@ -128,7 +128,8 @@ describe("TwitterProvider", () => {
       fetchHomeTimeline: jest.fn(),
     } as any;
 
-    jest.spyOn(utils, "randomInterval")
+    jest
+      .spyOn(utils, "randomInterval")
       .mockImplementation((callback, lowerBoundMs, upperBoundMs) => {
         const timer = setTimeout(callback, 0);
         return { timer, currentInterval: lowerBoundMs };
@@ -706,7 +707,8 @@ describe("TwitterProvider", () => {
         },
       };
 
-      const blockedProvider = await TwitterProvider.getInstance(blockedCharacter);
+      const blockedProvider =
+        await TwitterProvider.getInstance(blockedCharacter);
 
       const mention = {
         id: "mention1",

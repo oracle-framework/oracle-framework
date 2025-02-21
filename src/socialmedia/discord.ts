@@ -116,6 +116,8 @@ export class DiscordProvider {
     if (!this.client.isReady()) {
       return [];
     }
-    return Array.from(this.client.guilds.cache.values()).map(guild => guild.name);
+    return Array.from(this.client.guilds.cache.values()).map(
+      guild => guild.name,
+    );
   }
 }

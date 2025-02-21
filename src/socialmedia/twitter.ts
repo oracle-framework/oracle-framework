@@ -57,23 +57,34 @@ export class TwitterProvider {
   private autoResponderActive: boolean = false;
   private topicPostingActive: boolean = false;
   private replyingToMentionsActive: boolean = false;
-  
+
   // Track intervals and their timing information
   private topicPostingInterval: RandomIntervalHandle | null = null;
   private autoResponderInterval: RandomIntervalHandle | null = null;
   private replyToMentionsInterval: RandomIntervalHandle | null = null;
 
   // Store timestamps and intervals for resuming
-  private lastTopicPostingState: { timestamp: number; interval: number } | null = null;
-  private lastAutoResponderState: { timestamp: number; interval: number } | null = null;
-  private lastReplyToMentionsState: { timestamp: number; interval: number } | null = null;
+  private lastTopicPostingState: {
+    timestamp: number;
+    interval: number;
+  } | null = null;
+  private lastAutoResponderState: {
+    timestamp: number;
+    interval: number;
+  } | null = null;
+  private lastReplyToMentionsState: {
+    timestamp: number;
+    interval: number;
+  } | null = null;
 
   private constructor(character: Character) {
     this.character = character;
     this.scraper = new Scraper();
   }
 
-  public static async getInstance(character: Character): Promise<TwitterProvider> {
+  public static async getInstance(
+    character: Character,
+  ): Promise<TwitterProvider> {
     const key = character.username;
     if (!TwitterProvider.instances.has(key)) {
       const provider = new TwitterProvider(character);
@@ -85,21 +96,30 @@ export class TwitterProvider {
 
   private async initialize() {
     if (!this.character.twitterPassword) {
-      logger.info(`Twitter not configured for ${this.character.username}, skipping initialization`);
+      logger.info(
+        `Twitter not configured for ${this.character.username}, skipping initialization`,
+      );
       return;
     }
 
     try {
       const cookiesExist = await this.hasCookies();
       if (!cookiesExist) {
-        logger.info(`No cookies found for ${this.character.username}, logging in to Twitter...`);
+        logger.info(
+          `No cookies found for ${this.character.username}, logging in to Twitter...`,
+        );
         await this.login();
       } else {
-        logger.info(`Found existing cookies for ${this.character.username}, initializing...`);
+        logger.info(
+          `Found existing cookies for ${this.character.username}, initializing...`,
+        );
         await this.initWithCookies();
       }
     } catch (error) {
-      logger.error(`Failed to initialize Twitter provider for ${this.character.username}:`, error);
+      logger.error(
+        `Failed to initialize Twitter provider for ${this.character.username}:`,
+        error,
+      );
       throw error; // Re-throw to prevent the provider from being stored in instances
     }
   }
@@ -140,26 +160,32 @@ export class TwitterProvider {
       await this.scraper.setCookies(cookieStrings);
       logger.info(`Initialized cookies for ${this.character.username}`);
     } catch (error) {
-      logger.error(`Failed to initialize cookies for ${this.character.username}:`, error);
+      logger.error(
+        `Failed to initialize cookies for ${this.character.username}:`,
+        error,
+      );
       throw error;
     }
   }
 
-  private calculateRemainingInterval(lastState: { timestamp: number; interval: number } | null, defaultInterval: number): number | undefined {
+  private calculateRemainingInterval(
+    lastState: { timestamp: number; interval: number } | null,
+    defaultInterval: number,
+  ): number | undefined {
     if (!lastState) return undefined;
-    
+
     const elapsedTime = Date.now() - lastState.timestamp;
     const remainingTime = lastState.interval - elapsedTime;
-    
+
     // If more time has passed than the original interval, return 0 to trigger immediately
     if (remainingTime <= 0) return 0;
-    
+
     return remainingTime;
   }
 
   public async startTopicPosts() {
     if (this.topicPostingActive) {
-      throw new Error('Topic posting is already active');
+      throw new Error("Topic posting is already active");
     }
 
     const defaultBound = 30;
@@ -174,13 +200,16 @@ export class TwitterProvider {
 
     try {
       // Calculate remaining time if we're resuming
-      const remainingInterval = this.calculateRemainingInterval(this.lastTopicPostingState, topicInterval);
-      
+      const remainingInterval = this.calculateRemainingInterval(
+        this.lastTopicPostingState,
+        topicInterval,
+      );
+
       // If remainingInterval is 0, make a post immediately
       if (remainingInterval === 0) {
         await this.generateTimelinePost();
       }
-      
+
       // Set up interval for future posts
       this.topicPostingActive = true;
       this.topicPostingInterval = randomInterval(
@@ -188,21 +217,20 @@ export class TwitterProvider {
           try {
             await this.generateTimelinePost();
           } catch (error) {
-            logger.error('Error in topic posting interval:', error);
+            logger.error("Error in topic posting interval:", error);
             await this.stopTopicPosts();
           }
         },
         lowerBound,
         upperBound,
-        remainingInterval === 0 ? undefined : remainingInterval // If we just posted, get fresh interval
+        remainingInterval === 0 ? undefined : remainingInterval, // If we just posted, get fresh interval
       );
 
       // Store current state for future resume
       this.lastTopicPostingState = {
         timestamp: Date.now(),
-        interval: this.topicPostingInterval.currentInterval
+        interval: this.topicPostingInterval.currentInterval,
       };
-
     } catch (error) {
       logger.error("Error starting topic posts:", error);
       this.topicPostingActive = false;
@@ -215,7 +243,7 @@ export class TwitterProvider {
       // Store the current state before stopping
       this.lastTopicPostingState = {
         timestamp: Date.now(),
-        interval: this.topicPostingInterval.currentInterval
+        interval: this.topicPostingInterval.currentInterval,
       };
       clearTimeout(this.topicPostingInterval.timer);
       this.topicPostingInterval = null;
@@ -226,7 +254,7 @@ export class TwitterProvider {
 
   public async startAutoResponder() {
     if (this.autoResponderActive) {
-      throw new Error('Auto responder is already active');
+      throw new Error("Auto responder is already active");
     }
 
     const defaultBound = 60;
@@ -248,13 +276,16 @@ export class TwitterProvider {
 
     try {
       // Calculate remaining time if we're resuming
-      const remainingInterval = this.calculateRemainingInterval(this.lastAutoResponderState, defaultInterval);
-      
+      const remainingInterval = this.calculateRemainingInterval(
+        this.lastAutoResponderState,
+        defaultInterval,
+      );
+
       // If remainingInterval is 0, respond immediately
       if (remainingInterval === 0) {
         await this.generateTimelineResponse();
       }
-      
+
       // Set up interval for future responses
       this.autoResponderActive = true;
       this.autoResponderInterval = randomInterval(
@@ -262,21 +293,20 @@ export class TwitterProvider {
           try {
             await this.generateTimelineResponse();
           } catch (error) {
-            logger.error('Error in auto responder interval:', error);
+            logger.error("Error in auto responder interval:", error);
             await this.stopAutoResponder();
           }
         },
         lowerBound,
         upperBound,
-        remainingInterval === 0 ? undefined : remainingInterval // If we just responded, get fresh interval
+        remainingInterval === 0 ? undefined : remainingInterval, // If we just responded, get fresh interval
       );
 
       // Store current state for future resume
       this.lastAutoResponderState = {
         timestamp: Date.now(),
-        interval: this.autoResponderInterval.currentInterval
+        interval: this.autoResponderInterval.currentInterval,
       };
-
     } catch (error) {
       logger.error("Error starting auto responder:", error);
       this.autoResponderActive = false;
@@ -289,7 +319,7 @@ export class TwitterProvider {
       // Store the current state before stopping
       this.lastAutoResponderState = {
         timestamp: Date.now(),
-        interval: this.autoResponderInterval.currentInterval
+        interval: this.autoResponderInterval.currentInterval,
       };
       clearTimeout(this.autoResponderInterval.timer);
       this.autoResponderInterval = null;
@@ -300,7 +330,7 @@ export class TwitterProvider {
 
   public async startReplyingToMentions() {
     if (this.replyingToMentionsActive) {
-      throw new Error('Reply to mentions is already active');
+      throw new Error("Reply to mentions is already active");
     }
 
     const defaultBound = 2;
@@ -320,13 +350,16 @@ export class TwitterProvider {
 
     try {
       // Calculate remaining time if we're resuming
-      const remainingInterval = this.calculateRemainingInterval(this.lastReplyToMentionsState, defaultInterval);
-      
+      const remainingInterval = this.calculateRemainingInterval(
+        this.lastReplyToMentionsState,
+        defaultInterval,
+      );
+
       // If remainingInterval is 0, check mentions immediately
       if (remainingInterval === 0) {
         await this.replyToMentions();
       }
-      
+
       // Set up interval for future checks
       this.replyingToMentionsActive = true;
       this.replyToMentionsInterval = randomInterval(
@@ -334,21 +367,20 @@ export class TwitterProvider {
           try {
             await this.replyToMentions();
           } catch (error) {
-            logger.error('Error in reply to mentions interval:', error);
+            logger.error("Error in reply to mentions interval:", error);
             await this.stopReplyingToMentions();
           }
         },
         lowerBound,
         upperBound,
-        remainingInterval === 0 ? undefined : remainingInterval // If we just checked, get fresh interval
+        remainingInterval === 0 ? undefined : remainingInterval, // If we just checked, get fresh interval
       );
 
       // Store current state for future resume
       this.lastReplyToMentionsState = {
         timestamp: Date.now(),
-        interval: this.replyToMentionsInterval.currentInterval
+        interval: this.replyToMentionsInterval.currentInterval,
       };
-
     } catch (error) {
       logger.error("Error starting reply to mentions:", error);
       this.replyingToMentionsActive = false;
@@ -361,7 +393,7 @@ export class TwitterProvider {
       // Store the current state before stopping
       this.lastReplyToMentionsState = {
         timestamp: Date.now(),
-        interval: this.replyToMentionsInterval.currentInterval
+        interval: this.replyToMentionsInterval.currentInterval,
       };
       clearTimeout(this.replyToMentionsInterval.timer);
       this.replyToMentionsInterval = null;
@@ -375,7 +407,7 @@ export class TwitterProvider {
     await this.stopTopicPosts();
     await this.stopAutoResponder();
     await this.stopReplyingToMentions();
-    
+
     // Clear stored states
     this.lastTopicPostingState = null;
     this.lastAutoResponderState = null;

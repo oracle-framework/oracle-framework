@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
 import { Command } from "commander";
 import * as commander from "commander";
-import { buildServer, startServer } from './server';
-import { FastifyInstance } from 'fastify';
-import { setupRoutes } from './routes';
+import { buildServer, startServer } from "./server";
+import { FastifyInstance } from "fastify";
+import { setupRoutes } from "./routes";
 import { logger } from "./logger";
 import * as path from "path";
 import { CliProvider } from "./socialmedia/cli";
@@ -13,17 +13,19 @@ import { TwitterProvider } from "./socialmedia/twitter";
 import { getCharacters, initializeCharacters } from "./characters/index";
 
 // Load environment variables at startup
-logger.info('Loading environment variables...');
+logger.info("Loading environment variables...");
 logger.info(`Current working directory: ${process.cwd()}`);
-logger.info(`Looking for .env file at: ${path.join(process.cwd(), '.env')}`);
+logger.info(`Looking for .env file at: ${path.join(process.cwd(), ".env")}`);
 const result = dotenv.config();
 if (result.error) {
-  logger.error('Error loading .env file:', result.error);
-  process.exit(1);  // Exit if we can't load environment variables
+  logger.error("Error loading .env file:", result.error);
+  process.exit(1); // Exit if we can't load environment variables
 } else {
-  logger.info('.env file loaded successfully');
-  logger.info('Loaded environment variables:');
-  logger.info(`AGENT_TELEGRAM_API_KEY: ${process.env.AGENT_TELEGRAM_API_KEY ? 'present' : 'missing'}`);
+  logger.info(".env file loaded successfully");
+  logger.info("Loaded environment variables:");
+  logger.info(
+    `AGENT_TELEGRAM_API_KEY: ${process.env.AGENT_TELEGRAM_API_KEY ? "present" : "missing"}`,
+  );
 }
 
 // Initialize characters after environment variables are loaded
@@ -42,7 +44,10 @@ async function startTelegramBots() {
         const telegramProvider = await TelegramProvider.getInstance(character);
         telegramProvider.start();
       } catch (error) {
-        logger.error(`Failed to auto-start Telegram bot for ${character.username}:`, error);
+        logger.error(
+          `Failed to auto-start Telegram bot for ${character.username}:`,
+          error,
+        );
       }
     }
   }
@@ -58,7 +63,10 @@ async function startDiscordBots() {
         const discordProvider = new DiscordProvider(character);
         await discordProvider.start();
       } catch (error) {
-        logger.error(`Failed to auto-start Discord bot for ${character.username}:`, error);
+        logger.error(
+          `Failed to auto-start Discord bot for ${character.username}:`,
+          error,
+        );
       }
     }
   }
@@ -71,17 +79,17 @@ async function startApp() {
     await startServer(server);
 
     // Auto-start bots if API keys are present
-    if (process.env['AGENT_TELEGRAM_API_KEY']) {
+    if (process.env["AGENT_TELEGRAM_API_KEY"]) {
       await startTelegramBots();
     }
-    if (process.env['AGENT_DISCORD_API_KEY']) {
+    if (process.env["AGENT_DISCORD_API_KEY"]) {
       await startDiscordBots();
     }
   } catch (err) {
-    logger.error({err}, 'Failed to start server:');
+    logger.error({ err }, "Failed to start server:");
     if (err instanceof Error) {
-      logger.error({ message: err.message }, 'Error details');
-      logger.error({ stack: err.stack }, 'Stack trace');
+      logger.error({ message: err.message }, "Error details");
+      logger.error({ stack: err.stack }, "Stack trace");
     }
     process.exit(1);
   }
@@ -99,10 +107,10 @@ program
 
 // Make server the default command
 program
-  .command('server', { isDefault: true })
+  .command("server", { isDefault: true })
   .description("Start the API server")
   .option("-p, --port <number>", "Port to run the server on", "3000")
-  .action(async (options) => {
+  .action(async options => {
     const port = parseInt(options.port);
     await startApp();
   });
