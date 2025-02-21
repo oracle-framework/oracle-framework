@@ -8,6 +8,7 @@ export interface Tweet {
   inReplyToStatusIdStr?: string;
   inReplyToUserIdStr?: string;
   inReplyToScreenName?: string;
+  characterIdStr?: string;
 }
 
 export interface DbTweet {
@@ -20,6 +21,7 @@ export interface DbTweet {
   in_reply_to_status_id_str?: string;
   in_reply_to_user_id_str?: string;
   in_reply_to_screen_name?: string;
+  character_id_str?: string;
 }
 
 export interface Prompt {
