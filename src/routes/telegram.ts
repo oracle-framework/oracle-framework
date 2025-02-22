@@ -102,7 +102,7 @@ export async function telegramRoutes(server: FastifyInstance) {
           .status(404)
           .send({ error: `Character not found: ${username}` });
       }
-      const telegramProvider = await TelegramProvider.getInstance(character);
+      const telegramProvider = TelegramProvider.getInstance(character);
       await telegramProvider.stop();
       return { success: true, message: "Telegram bot stopped" };
     },

@@ -13,6 +13,7 @@ export class TelegramProvider {
   private character: Character;
   private active: boolean = false;
   private activeChats: Set<string> = new Set();
+  private messageHandler: ((ctx: any) => Promise<void>) | null = null;
 
   private constructor(character: Character) {
     if (!character.telegramApiKey) {
@@ -20,11 +21,10 @@ export class TelegramProvider {
     }
     this.character = character;
     this.bot = new Bot(character.telegramApiKey);
+    this.messageHandler = null;
   }
 
-  public static getInstance(
-    character: Character,
-  ): TelegramProvider {
+  public static getInstance(character: Character): TelegramProvider {
     const key = character.username;
     if (!TelegramProvider.instances.has(key)) {
       const provider = new TelegramProvider(character);
@@ -33,10 +33,52 @@ export class TelegramProvider {
     return TelegramProvider.instances.get(key)!;
   }
 
-  // Add cleanup method for when we need to destroy the provider
+  public start() {
+    if (this.active) {
+      logger.info(`Telegram provider already running for ${this.character.username}`);
+      return;
+    }
+
+    logger.info(`Telegram provider started for ${this.character.username}`);
+    this.active = true;
+
+    // Define message handler if not already defined
+    if (!this.messageHandler) {
+      this.messageHandler = this.handleReply.bind(this);
+      this.bot.on("message", this.messageHandler);
+    }
+
+    this.bot.start();
+  }
+
+  public async stop() {
+    if (!this.active) {
+      return;
+    }
+
+    this.active = false;
+    this.messageHandler = null;
+    
+    // Stop the bot and remove all listeners
+    await this.bot.stop();
+    
+    // Create a new bot instance to ensure clean slate
+    this.bot = new Bot(this.character.telegramApiKey);
+    
+    logger.info(`Telegram provider stopped for ${this.character.username}`);
+  }
+
   public async cleanup() {
     await this.stop();
     TelegramProvider.instances.delete(this.character.username);
+  }
+
+  public isActive(): boolean {
+    return this.active;
+  }
+
+  public getActiveChats(): string[] {
+    return Array.from(this.activeChats);
   }
 
   private async handleReply(ctx: any) {
@@ -208,26 +250,5 @@ export class TelegramProvider {
         );
       }
     }
-  }
-
-  public start() {
-    logger.info(`Telegram provider started for ${this.character.username}`);
-    this.active = true;
-    this.bot.on("message", this.handleReply.bind(this));
-    this.bot.start();
-  }
-
-  public async stop() {
-    this.active = false;
-    await this.bot.stop();
-    logger.info(`Telegram provider stopped for ${this.character.username}`);
-  }
-
-  public isActive(): boolean {
-    return this.active;
-  }
-
-  public getActiveChats(): string[] {
-    return Array.from(this.activeChats);
   }
 }
