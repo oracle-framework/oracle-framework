@@ -91,7 +91,7 @@ const program = new Command();
 program.enablePositionalOptions();
 
 program
-  .name("daos-world-agent")
+  .name("oracle")
   .description("CLI to manage social media agents")
   .version("0.0.1");
 
@@ -120,8 +120,8 @@ program
     if (!character) {
       throw new Error(`Character not found: ${username}`);
     }
-    const telegramProvider = await TelegramProvider.getInstance(character);
-    await telegramProvider.start();
+    const telegramProvider = TelegramProvider.getInstance(character);
+    telegramProvider.start();
   });
 
 program
