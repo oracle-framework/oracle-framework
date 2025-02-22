@@ -31,7 +31,7 @@ async function startTelegramBots() {
     if (character.telegramApiKey) {
       try {
         logger.info(`Auto-starting Telegram bot for ${character.username}`);
-        const telegramProvider = await TelegramProvider.getInstance(character);
+        const telegramProvider = TelegramProvider.getInstance(character);
         telegramProvider.start();
       } catch (error) {
         logger.error(

@@ -29,14 +29,14 @@ export async function telegramRoutes(server: FastifyInstance) {
           .status(404)
           .send({ error: `Character not found: ${username}` });
       }
-      const telegramProvider = await TelegramProvider.getInstance(character);
+      const telegramProvider = TelegramProvider.getInstance(character);
 
       // Check if bot is already running
       if (telegramProvider.isActive()) {
         return { success: true, message: "Telegram bot is already running" };
       }
 
-      await telegramProvider.start();
+      telegramProvider.start();
       return { success: true, message: "Telegram bot started" };
     },
   );
