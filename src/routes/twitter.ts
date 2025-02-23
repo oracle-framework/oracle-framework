@@ -187,9 +187,9 @@ export async function twitterRoutes(server: FastifyInstance) {
                 properties: {
                   autoResponder: { type: ["string", "null"] },
                   topicPosting: { type: ["string", "null"] },
-                  replyToMentions: { type: ["string", "null"] }
-                }
-              }
+                  replyToMentions: { type: ["string", "null"] },
+                },
+              },
             },
           },
         },
@@ -214,7 +214,7 @@ export async function twitterRoutes(server: FastifyInstance) {
         isTopicPostingActive: twitterProvider.isTopicPostingActive(),
         isReplyingToMentions: twitterProvider.isReplyingToMentions(),
         hasCookies: await twitterProvider.hasCookies(),
-        nextRunTimes
+        nextRunTimes,
       };
     },
   );

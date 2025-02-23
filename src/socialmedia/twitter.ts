@@ -293,7 +293,7 @@ export class TwitterProvider {
         upperBound,
         remainingInterval && remainingInterval > 0
           ? remainingInterval
-          : undefined
+          : undefined,
       );
 
       // Store current state for future resume
@@ -369,7 +369,7 @@ export class TwitterProvider {
         upperBound,
         remainingInterval && remainingInterval > 0
           ? remainingInterval
-          : undefined
+          : undefined,
       );
 
       // Store current state for future resume
@@ -1005,23 +1005,23 @@ export class TwitterProvider {
   } {
     const formatTimeRemaining = (timestamp?: number): string | undefined => {
       if (!timestamp) return undefined;
-      
+
       const now = Date.now();
       const minutesRemaining = Math.round((timestamp - now) / 1000 / 60);
-      
+
       if (minutesRemaining <= 0) return "Running soon...";
       if (minutesRemaining === 1) return "1 minute remaining";
       if (minutesRemaining < 60) return `${minutesRemaining} minutes remaining`;
-      
+
       const hoursRemaining = Math.floor(minutesRemaining / 60);
       const remainingMinutes = minutesRemaining % 60;
-      
+
       if (hoursRemaining === 1) {
-        return remainingMinutes > 0 
+        return remainingMinutes > 0
           ? `1 hour ${remainingMinutes} minutes remaining`
           : "1 hour remaining";
       }
-      
+
       return remainingMinutes > 0
         ? `${hoursRemaining} hours ${remainingMinutes} minutes remaining`
         : `${hoursRemaining} hours remaining`;
@@ -1029,14 +1029,20 @@ export class TwitterProvider {
 
     return {
       autoResponder: formatTimeRemaining(
-        this.autoResponderInterval?.timer ? Date.now() + this.autoResponderInterval.currentInterval : undefined
+        this.autoResponderInterval?.timer
+          ? Date.now() + this.autoResponderInterval.currentInterval
+          : undefined,
       ),
       topicPosting: formatTimeRemaining(
-        this.topicPostingInterval?.timer ? Date.now() + this.topicPostingInterval.currentInterval : undefined
+        this.topicPostingInterval?.timer
+          ? Date.now() + this.topicPostingInterval.currentInterval
+          : undefined,
       ),
       replyToMentions: formatTimeRemaining(
-        this.replyToMentionsInterval?.timer ? Date.now() + this.replyToMentionsInterval.currentInterval : undefined
-      )
+        this.replyToMentionsInterval?.timer
+          ? Date.now() + this.replyToMentionsInterval.currentInterval
+          : undefined,
+      ),
     };
   }
 
