@@ -5,7 +5,11 @@
 if command -v yarn >/dev/null 2>&1; then
     echo "Running formatter using yarn..."
     yarn format
+    echo "Staging formatted files..."
+    git add .
 else
     echo "Yarn not found, falling back to npm..."
     npm run format
+    echo "Staging formatted files..."
+    git add .
 fi
