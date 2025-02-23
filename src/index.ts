@@ -154,8 +154,7 @@ program
     await discordProvider.start();
   });
 
-
-  program
+program
   .command("autoResponder")
   .description("Start auto-responder for Twitter")
   .argument("<username>", "Username of the agent")
