@@ -182,6 +182,14 @@ export async function twitterRoutes(server: FastifyInstance) {
               isTopicPostingActive: { type: "boolean" },
               isReplyingToMentions: { type: "boolean" },
               hasCookies: { type: "boolean" },
+              nextRunTimes: {
+                type: "object",
+                properties: {
+                  autoResponder: { type: ["string", "null"] },
+                  topicPosting: { type: ["string", "null"] },
+                  replyToMentions: { type: ["string", "null"] }
+                }
+              }
             },
           },
         },
@@ -198,6 +206,7 @@ export async function twitterRoutes(server: FastifyInstance) {
           .send({ error: `Character not found: ${username}` });
       }
       const twitterProvider = await TwitterProvider.getInstance(character);
+      const nextRunTimes = twitterProvider.getNextRunTimes();
 
       return {
         username,
@@ -205,6 +214,7 @@ export async function twitterRoutes(server: FastifyInstance) {
         isTopicPostingActive: twitterProvider.isTopicPostingActive(),
         isReplyingToMentions: twitterProvider.isReplyingToMentions(),
         hasCookies: await twitterProvider.hasCookies(),
+        nextRunTimes
       };
     },
   );

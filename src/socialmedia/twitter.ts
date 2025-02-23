@@ -273,8 +273,8 @@ export class TwitterProvider {
         defaultInterval,
       );
 
-      // If remainingInterval is 0, respond immediately
-      if (remainingInterval === 0) {
+      // Make an initial response if we're starting fresh or if it's time to respond
+      if (remainingInterval === undefined || remainingInterval === 0) {
         await this.generateTimelineResponse();
       }
 
@@ -291,7 +291,9 @@ export class TwitterProvider {
         },
         lowerBound,
         upperBound,
-        remainingInterval === 0 ? undefined : remainingInterval, // If we just responded, get fresh interval
+        remainingInterval && remainingInterval > 0
+          ? remainingInterval
+          : undefined
       );
 
       // Store current state for future resume
@@ -347,8 +349,8 @@ export class TwitterProvider {
         defaultInterval,
       );
 
-      // If remainingInterval is 0, check mentions immediately
-      if (remainingInterval === 0) {
+      // Make an initial check if we're starting fresh or if it's time to check
+      if (remainingInterval === undefined || remainingInterval === 0) {
         await this.replyToMentions();
       }
 
@@ -365,7 +367,9 @@ export class TwitterProvider {
         },
         lowerBound,
         upperBound,
-        remainingInterval === 0 ? undefined : remainingInterval, // If we just checked, get fresh interval
+        remainingInterval && remainingInterval > 0
+          ? remainingInterval
+          : undefined
       );
 
       // Store current state for future resume
@@ -992,6 +996,48 @@ export class TwitterProvider {
 
   public isAutoResponderActive(): boolean {
     return this.autoResponderActive;
+  }
+
+  public getNextRunTimes(): {
+    autoResponder?: string;
+    topicPosting?: string;
+    replyToMentions?: string;
+  } {
+    const formatTimeRemaining = (timestamp?: number): string | undefined => {
+      if (!timestamp) return undefined;
+      
+      const now = Date.now();
+      const minutesRemaining = Math.round((timestamp - now) / 1000 / 60);
+      
+      if (minutesRemaining <= 0) return "Running soon...";
+      if (minutesRemaining === 1) return "1 minute remaining";
+      if (minutesRemaining < 60) return `${minutesRemaining} minutes remaining`;
+      
+      const hoursRemaining = Math.floor(minutesRemaining / 60);
+      const remainingMinutes = minutesRemaining % 60;
+      
+      if (hoursRemaining === 1) {
+        return remainingMinutes > 0 
+          ? `1 hour ${remainingMinutes} minutes remaining`
+          : "1 hour remaining";
+      }
+      
+      return remainingMinutes > 0
+        ? `${hoursRemaining} hours ${remainingMinutes} minutes remaining`
+        : `${hoursRemaining} hours remaining`;
+    };
+
+    return {
+      autoResponder: formatTimeRemaining(
+        this.autoResponderInterval?.timer ? Date.now() + this.autoResponderInterval.currentInterval : undefined
+      ),
+      topicPosting: formatTimeRemaining(
+        this.topicPostingInterval?.timer ? Date.now() + this.topicPostingInterval.currentInterval : undefined
+      ),
+      replyToMentions: formatTimeRemaining(
+        this.replyToMentionsInterval?.timer ? Date.now() + this.replyToMentionsInterval.currentInterval : undefined
+      )
+    };
   }
 
   public isTopicPostingActive(): boolean {
