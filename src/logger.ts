@@ -40,18 +40,3 @@ export const logger = isDevelopment
         sync: false,
       }),
     );
-
-// Production: Add log rotation
-if (!isDevelopment) {
-  import("pino-roll").then(({ default: rotate }) => {
-    rotate(logFilePath, {
-      size: "10m",
-      interval: "1d",
-      compress: true,
-      maxFiles: 7,
-      mkdir: true,
-      dateFormat: "YYYY-MM-DD",
-      nameFormat: "app.log.%DATE%",
-    });
-  });
-}

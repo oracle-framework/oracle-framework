@@ -26,7 +26,6 @@
     "grammy": "^1.33.0",
     "openai": "^4.70.3",
     "pino": "^9.6.0",
-    "pino-roll": "^2.2.0",
     "sqlite-vec": "^0.1.7-alpha.2",
     "uuid": "^11.0.5"
   },

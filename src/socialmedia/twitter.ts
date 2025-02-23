@@ -213,7 +213,9 @@ export class TwitterProvider {
         },
         lowerBound,
         upperBound,
-        remainingInterval && remainingInterval > 0 ? remainingInterval : undefined
+        remainingInterval && remainingInterval > 0
+          ? remainingInterval
+          : undefined,
       );
 
       // Store current state for future resume

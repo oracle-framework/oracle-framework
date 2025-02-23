@@ -4,16 +4,14 @@ let pipeline: any = null;
 
 export async function initializeEmbedder() {
   try {
-    const { pipeline: transformersPipeline } = await import(
-      "@xenova/transformers"
-    );
+    const { pipeline: transformersPipeline } = await import('@xenova/transformers');
     pipeline = await transformersPipeline(
       "feature-extraction",
       "Xenova/all-MiniLM-L6-v2",
     );
     logger.info("Embedder initialized successfully");
   } catch (error) {
-    logger.error("Failed to initialize embedder:", error);
+    logger.error({ error }, "Failed to initialize embedder");
     throw error;
   }
 }
