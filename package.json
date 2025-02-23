@@ -33,7 +33,7 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "build": "tsc && cp src/characters/characters.json dist/characters/",
-    "format": "prettier --write \"src/**/*.{js,ts,tsx,json}\"",
+    "format": "prettier --write",
     "watch": "tsc -w",
     "test": "jest",
     "test:coverage": "jest --coverage",

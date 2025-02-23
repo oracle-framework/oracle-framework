@@ -1,15 +1,18 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+set -e
 
-# Check if yarn is installed, otherwise fall back to npm
-if command -v yarn >/dev/null 2>&1; then
-    echo "Running formatter using yarn..."
-    yarn format
-    echo "Re-staging only previously staged files..."
-    git update-index --again
+# Get the list of staged files (only added, copied, or modified files)
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|ts|tsx|json)$')
+
+if [ -n "$staged_files" ]; then
+    if command -v yarn >/dev/null 2>&1; then
+        echo "Running formatter using yarn on staged files..."
+        echo "$staged_files" | xargs yarn format
+    else
+        echo "Yarn not found, falling back to npm..."
+        echo "$staged_files" | xargs npm run format
+    fi
+    echo "Re-staging formatted files..."
+    echo "$staged_files" | xargs git add
 else
-    echo "Yarn not found, falling back to npm..."
-    npm run format
-    echo "Re-staging only previously staged files..."
-    git update-index --again
+    echo "No files to format."
 fi
