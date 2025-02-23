@@ -20,7 +20,8 @@ export const initializeSchema = (db: Database) => {
         tweet_created_at DATETIME NOT NULL,
         in_reply_to_status_id_str VARCHAR(50),    
         in_reply_to_user_id_str VARCHAR(50),      
-        in_reply_to_screen_name VARCHAR(20)       
+        in_reply_to_screen_name VARCHAR(20),
+        character_id_str VARCHAR(50) NOT NULL
       );
 
       CREATE INDEX IF NOT EXISTS idx_tweets_id_str ON tweets(id_str);
@@ -29,6 +30,7 @@ export const initializeSchema = (db: Database) => {
       CREATE INDEX IF NOT EXISTS idx_tweets_tweet_created_at ON tweets(tweet_created_at);
       CREATE INDEX IF NOT EXISTS idx_tweets_in_reply_to_status_id_str ON tweets(in_reply_to_status_id_str);
       CREATE INDEX IF NOT EXISTS idx_tweets_in_reply_to_user_id_str ON tweets(in_reply_to_user_id_str);
+      CREATE INDEX IF NOT EXISTS idx_tweets_character_id_str ON tweets(character_id_str);
     `);
   }
 

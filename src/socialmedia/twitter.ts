@@ -152,7 +152,7 @@ export class TwitterProvider {
     );
 
     try {
-      const botHistory = await getTwitterHistory(this.character.userIdStr);
+      const botHistory = await getTwitterHistory(this.character.userIdStr, this.character.userIdStr);
       const formattedHistory = formatTwitterHistoryForPrompt(botHistory);
       let completion;
       let isSimilar = true;
@@ -246,6 +246,7 @@ export class TwitterProvider {
           inReplyToScreenName:
             responseJson.data.create_tweet.tweet_results.result.legacy
               .in_reply_to_screen_name || undefined,
+          characterIdStr: this.character.userIdStr,
         };
 
         saveTweet(tweet);
@@ -307,8 +308,8 @@ export class TwitterProvider {
         `The most recent tweet was ${mostRecentTweetMinutesAgo} minutes ago.`,
       );
 
-      const history = getTwitterHistory(this.character.userIdStr, 10);
-      const historyByUser = getTwitterHistory(mostRecentTweet.userIdStr, 10);
+      const history = getTwitterHistory(this.character.userIdStr, this.character.userIdStr, 10);
+      const historyByUser = getTwitterHistory(this.character.userIdStr, mostRecentTweet.userIdStr, 10);
 
       const formattedHistory = formatTwitterHistoryForPrompt(
         history.concat(historyByUser),
@@ -346,6 +347,7 @@ export class TwitterProvider {
         inReplyToStatusIdStr: mostRecentTweet.inReplyToStatusIdStr || undefined,
         inReplyToUserIdStr: mostRecentTweet.inReplyToUserIdStr || undefined,
         inReplyToScreenName: mostRecentTweet.inReplyToScreenName || undefined,
+        characterIdStr: this.character.userIdStr,
       });
       logger.info("in_reply_to tweet was inserted into tweets.");
       // save reply tweet
@@ -374,6 +376,7 @@ export class TwitterProvider {
         inReplyToScreenName:
           newTweetJson.data.create_tweet.tweet_results.result.legacy
             .in_reply_to_screen_name || undefined,
+        characterIdStr: this.character.userIdStr,
       });
       logger.info("reply tweet was inserted into tweets.");
       //save prompt
@@ -398,9 +401,10 @@ export class TwitterProvider {
             x.userScreenName,
           ),
       )
-      .filter(x => getTweetById(x.idStr) === undefined)
+      .filter(x => getTweetById(this.character.userIdStr, x.idStr) === undefined)
       .filter(x => {
         const interactionCount = getUserInteractionCount(
+          this.character.userIdStr,
           x.userIdStr,
           this.INTERACTION_TIMEOUT,
         );
@@ -474,6 +478,7 @@ export class TwitterProvider {
             inReplyToStatusIdStr: mention.inReplyToStatusIdStr || undefined,
             inReplyToUserIdStr: mention.inReplyToUserIdStr || undefined,
             inReplyToScreenName: mention.inReplyToScreenName || undefined,
+            characterIdStr: this.character.userIdStr,
           });
           logger.info("mention was inserted into tweets.");
           //save reply tweet
@@ -503,6 +508,7 @@ export class TwitterProvider {
             inReplyToScreenName:
               responseJson.data.create_tweet.tweet_results.result.legacy
                 .in_reply_to_screen_name || undefined,
+            characterIdStr: this.character.userIdStr,
           });
           logger.info("reply tweet was inserted into tweets.");
           //save prompt
@@ -531,9 +537,9 @@ export class TwitterProvider {
 
   private getTwitterHistoryByMention(mention: Mention): Tweet[] {
     let history: Tweet[] = [];
-    history.push(...getTwitterHistory(mention.userIdStr, 10));
+    history.push(...getTwitterHistory(this.character.userIdStr, mention.userIdStr, 10));
     if (mention.conversationId) {
-      history.push(...getConversationHistory(mention.conversationId, 10));
+      history.push(...getConversationHistory(this.character.userIdStr, mention.conversationId, 10));
     }
     return history;
   }
@@ -541,6 +547,7 @@ export class TwitterProvider {
   private async shouldSkipMention(mention: Mention) {
     try {
       const existingTweetInConversation = getTwitterHistory(
+        this.character.userIdStr,
         this.character.userIdStr,
         1,
         mention.conversationId,
@@ -561,7 +568,7 @@ export class TwitterProvider {
       }
 
       // Skip if we've already processed this tweet
-      const existingTweet = getTweetById(mention.idStr);
+      const existingTweet = getTweetById(this.character.userIdStr, mention.idStr);
       if (existingTweet) {
         logger.info(`Skipping mention ${mention.idStr}: Already processed`);
         return true;
@@ -569,6 +576,7 @@ export class TwitterProvider {
 
       // Get interaction count from tweets
       const interactionCount = getUserInteractionCount(
+        this.character.userIdStr,
         mention.userIdStr,
         this.INTERACTION_TIMEOUT,
       );
@@ -695,7 +703,7 @@ export class TwitterProvider {
         inReplyToStatusIdStr: mention.inReplyToStatusId,
       } as Mention;
       const characterTweet = mention.inReplyToStatusId
-        ? getTweetById(mention.inReplyToStatusId)
+        ? getTweetById(this.character.userIdStr, mention.inReplyToStatusId)
         : undefined;
       cleanedMention.inReplyToUserIdStr =
         characterTweet?.userIdStr || undefined;
