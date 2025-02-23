@@ -154,6 +154,20 @@ program
     await discordProvider.start();
   });
 
+
+  program
+  .command("autoResponder")
+  .description("Start auto-responder for Twitter")
+  .argument("<username>", "Username of the agent")
+  .action(async username => {
+    const character = CHARACTERS.find(x => x.username === username);
+    if (!character) {
+      throw new Error(`Character not found: ${username}`);
+    }
+    const twitterProvider = await TwitterProvider.getInstance(character);
+    await twitterProvider.startAutoResponder();
+  });
+
 program
   .command("topicPost")
   .description("Start topic posting for Twitter")
