@@ -4,7 +4,9 @@ let pipeline: any = null;
 
 export async function initializeEmbedder() {
   try {
-    const { pipeline: transformersPipeline } = await import('@xenova/transformers');
+    const { pipeline: transformersPipeline } = await import(
+      "@xenova/transformers"
+    );
     pipeline = await transformersPipeline(
       "feature-extraction",
       "Xenova/all-MiniLM-L6-v2",

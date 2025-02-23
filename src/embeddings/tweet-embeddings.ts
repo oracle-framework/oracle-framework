@@ -18,11 +18,14 @@ export async function storeTweetEmbedding(
   try {
     const tweetTextEmbedding = await embedText(tweetText);
     const tweetTextSummaryEmbedding = await embedText(tweetTextSummary);
-    
-    const textBuffer = Buffer.from(new Float32Array(tweetTextEmbedding).buffer);
-    const summaryBuffer = Buffer.from(new Float32Array(tweetTextSummaryEmbedding).buffer);
 
-    db.prepare(`
+    const textBuffer = Buffer.from(new Float32Array(tweetTextEmbedding).buffer);
+    const summaryBuffer = Buffer.from(
+      new Float32Array(tweetTextSummaryEmbedding).buffer,
+    );
+
+    db.prepare(
+      `
       INSERT INTO vector_tweets (
         username, 
         tweet_id, 
@@ -32,7 +35,8 @@ export async function storeTweetEmbedding(
         tweet_text_embedding, 
         tweet_text_summary_embedding
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       username,
       tweetId,
       tweetText,
@@ -76,15 +80,18 @@ export async function isTweetTooSimilar(
       LIMIT ?
     `;
 
-    logger.debug({
-      newTweetLength: newTweet.length,
-      embeddingLength: newEmbedding.length,
-      threshold,
-      numResults
-    }, "Checking tweet similarity");
+    logger.debug(
+      {
+        newTweetLength: newTweet.length,
+        embeddingLength: newEmbedding.length,
+        threshold,
+        numResults,
+      },
+      "Checking tweet similarity",
+    );
 
     const rows = db.prepare(query).all(newBuffer, numResults) as TweetRow[];
-    
+
     if (!rows.length) {
       logger.debug("No previous tweets to compare against");
       return false;
@@ -94,9 +101,11 @@ export async function isTweetTooSimilar(
     for (const row of rows) {
       const pastEmbedding = decodeEmbedding(row.tweet_text_embedding);
       const similarity = cosineSimilarity(newEmbeddingArray, pastEmbedding);
-      
+
       if (similarity >= threshold) {
-        logger.info(`Tweet ${row.tweet_id} is too similar (Similarity: ${similarity})`);
+        logger.info(
+          `Tweet ${row.tweet_id} is too similar (Similarity: ${similarity})`,
+        );
         return true;
       }
     }
