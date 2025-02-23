@@ -195,8 +195,8 @@ export class TwitterProvider {
         topicInterval,
       );
 
-      // If remainingInterval is 0, make a post immediately
-      if (remainingInterval === 0) {
+      // Make an initial post if we're starting fresh or if it's time to post
+      if (remainingInterval === undefined || remainingInterval === 0) {
         await this.generateTimelinePost();
       }
 
@@ -213,7 +213,7 @@ export class TwitterProvider {
         },
         lowerBound,
         upperBound,
-        remainingInterval === 0 ? undefined : remainingInterval, // If we just posted, get fresh interval
+        remainingInterval && remainingInterval > 0 ? remainingInterval : undefined
       );
 
       // Store current state for future resume

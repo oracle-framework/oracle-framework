@@ -35,7 +35,9 @@ export class TelegramProvider {
 
   public start() {
     if (this.active) {
-      logger.info(`Telegram provider already running for ${this.character.username}`);
+      logger.info(
+        `Telegram provider already running for ${this.character.username}`,
+      );
       return;
     }
 
@@ -58,13 +60,13 @@ export class TelegramProvider {
 
     this.active = false;
     this.messageHandler = null;
-    
+
     // Stop the bot and remove all listeners
     await this.bot.stop();
-    
+
     // Create a new bot instance to ensure clean slate
     this.bot = new Bot(this.character.telegramApiKey);
-    
+
     logger.info(`Telegram provider stopped for ${this.character.username}`);
   }
 
