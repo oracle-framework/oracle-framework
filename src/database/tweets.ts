@@ -12,7 +12,8 @@ export const saveTweet = (tweet: Tweet): void => {
       !tweet.userScreenName ||
       !tweet.fullText ||
       !tweet.conversationIdStr ||
-      !tweet.tweetCreatedAt
+      !tweet.tweetCreatedAt ||
+      !tweet.characterIdStr
     ) {
       throw new Error(
         `Missing required fields for tweet: ${JSON.stringify({
@@ -22,6 +23,7 @@ export const saveTweet = (tweet: Tweet): void => {
           fullText: !tweet.fullText,
           conversationIdStr: !tweet.conversationIdStr,
           tweetCreatedAt: !tweet.tweetCreatedAt,
+          characterIdStr: !tweet.characterIdStr,
         })}`,
       );
     }
@@ -36,8 +38,9 @@ export const saveTweet = (tweet: Tweet): void => {
         tweet_created_at,
         in_reply_to_status_id_str,
         in_reply_to_user_id_str,
-        in_reply_to_screen_name
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        in_reply_to_screen_name,
+        character_id_str
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `);
 
     stmt.run(
@@ -50,6 +53,7 @@ export const saveTweet = (tweet: Tweet): void => {
       tweet.inReplyToStatusIdStr,
       tweet.inReplyToUserIdStr,
       tweet.inReplyToScreenName,
+      tweet.characterIdStr,
     );
 
     logger.debug("Successfully inserted tweet");
@@ -94,15 +98,18 @@ export const savePrompt = (prompt: Prompt): void => {
   }
 };
 
-export const getTweetById = (idStr: string): Tweet | undefined => {
+export const getTweetById = (
+  characterIdStr: string,
+  idStr: string,
+): Tweet | undefined => {
   try {
     logger.debug(`Checking for tweet ID: ${idStr}`);
 
     const stmt = db.prepare(`
       SELECT * FROM tweets 
-      WHERE id_str = ?
+      WHERE id_str = ? AND character_id_str = ?
     `);
-    const dbTweet = stmt.get(idStr) as DbTweet;
+    const dbTweet = stmt.get(idStr, characterIdStr) as DbTweet;
 
     if (!dbTweet) {
       logger.debug("No tweet found");
@@ -130,6 +137,7 @@ export const getTweetById = (idStr: string): Tweet | undefined => {
 };
 
 export const getTwitterHistory = (
+  characterIdStr: string,
   userIdStr: string,
   limit: number = 50,
   conversationIdStr?: string,
@@ -137,9 +145,9 @@ export const getTwitterHistory = (
   try {
     let query = `
       SELECT * FROM tweets 
-      WHERE user_id_str = ?
+      WHERE user_id_str = ? AND character_id_str = ?
     `;
-    const params: any[] = [userIdStr];
+    const params: any[] = [userIdStr, characterIdStr];
 
     if (conversationIdStr) {
       query += ` AND conversation_id_str = ?`;
@@ -168,15 +176,16 @@ export const getTwitterHistory = (
 };
 
 export const getConversationHistory = (
+  characterIdStr: string,
   conversationIdStr: string,
   limit: number = 50,
 ): Tweet[] => {
   try {
     const dbTweets = db
       .prepare(
-        `SELECT * FROM tweets WHERE conversation_id_str = ? ORDER BY tweet_created_at DESC LIMIT ?`,
+        `SELECT * FROM tweets WHERE conversation_id_str = ? AND character_id_str = ? ORDER BY tweet_created_at DESC LIMIT ?`,
       )
-      .all(conversationIdStr, limit) as DbTweet[];
+      .all(conversationIdStr, characterIdStr, limit) as DbTweet[];
 
     return dbTweets.map(dbTweet => ({
       idStr: dbTweet.id_str,
@@ -216,6 +225,7 @@ export const formatTwitterHistoryForPrompt = (history: Tweet[]): string => {
 };
 
 export const getUserInteractionCount = (
+  characterIdStr: string,
   userIdStr: string,
   interactionTimeout: number,
 ): number => {
@@ -227,10 +237,11 @@ export const getUserInteractionCount = (
         `
         SELECT COUNT(*) AS interaction_count FROM tweets 
         WHERE in_reply_to_user_id_str = ? 
+        AND character_id_str = ?
         AND tweet_created_at > ?;
       `,
       )
-      .get(userIdStr, cutoff) as {
+      .get(userIdStr, characterIdStr, cutoff) as {
       interaction_count: number;
     };
     return result.interaction_count || 0;
