@@ -777,6 +777,43 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==
 
+"@roamhq/wrtc-darwin-arm64@0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@roamhq/wrtc-darwin-arm64/-/wrtc-darwin-arm64-0.8.0.tgz#15057e6b8f57e4d1b7008a9d848b6f2036adbb24"
+  integrity sha512-OtV2KWO7zOG3L8TF3KCt9aucynVCD/ww2xeXXgg+FLkya3ca0uzehN8EQJ3BL4tkInksbFJ2ssyu9cehfJ3ZuA==
+
+"@roamhq/wrtc-darwin-x64@0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@roamhq/wrtc-darwin-x64/-/wrtc-darwin-x64-0.8.0.tgz#e09137b5a7edf2c2412bc63f1da1893dcaa211fd"
+  integrity sha512-VY7Vzt/SDDDCpW//h8GW9bOZrOr8gWXPZVD9473ypl4jyBIoO57yyLbHzd1G0vBUkS6szsHlQCz1WwpI30YL+g==
+
+"@roamhq/wrtc-linux-arm64@0.8.1":
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/@roamhq/wrtc-linux-arm64/-/wrtc-linux-arm64-0.8.1.tgz#9a5f3297de44fcec86713d0baefa0594658ab71e"
+  integrity sha512-FBJLLazlWkGQUXaokC/rTbrUQbb0CNFYry52fZGstufrGLTWu+g4HcwXdVvxh1tnVtVMvkQGk+mlOL52sCxw0A==
+
+"@roamhq/wrtc-linux-x64@0.8.1":
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/@roamhq/wrtc-linux-x64/-/wrtc-linux-x64-0.8.1.tgz#3c5b60ca6cc6ebf5c2389d852f4a101135031da2"
+  integrity sha512-I9oWG7b4uvWO1IOR/aF34n+ID6TKVuSs0jd19h5KdhfRtw7FFh9xxuwN9rONPxLVa6fS0q+MCZgAf8Scz89L8Q==
+
+"@roamhq/wrtc-win32-x64@0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@roamhq/wrtc-win32-x64/-/wrtc-win32-x64-0.8.0.tgz#582e2478df48201d5757b60dcd4b4dcc40a054b7"
+  integrity sha512-R2fxl41BLWPiP4eaTHGLzbbVvRjx1mV/OsgINCvawO7Hwz5Zx9I45+Fhrw3hd4n5amIeSG9VIF7Kz8eeTFXTGQ==
+
+"@roamhq/wrtc@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@roamhq/wrtc/-/wrtc-0.8.0.tgz#03c8c64c3b6a1e6e8965ec6496fa7e97571ae04b"
+  integrity sha512-C0V/nqc4/2xzORI5qa4mIeN/8UO3ywN1kInrJ9u6GljFx0D18JMUJEqe8yYHa61RrEeoWN3PKdW++k8TocSx/A==
+  optionalDependencies:
+    "@roamhq/wrtc-darwin-arm64" "0.8.0"
+    "@roamhq/wrtc-darwin-x64" "0.8.0"
+    "@roamhq/wrtc-linux-arm64" "0.8.1"
+    "@roamhq/wrtc-linux-x64" "0.8.1"
+    "@roamhq/wrtc-win32-x64" "0.8.0"
+    domexception "^4.0.0"
+
 "@sapphire/async-queue@^1.5.2", "@sapphire/async-queue@^1.5.3":
   version "1.5.5"
   resolved "https://registry.yarnpkg.com/@sapphire/async-queue/-/async-queue-1.5.5.tgz#2b18d402bb920b65b13ad4ed8dfb6c386300dd84"
@@ -950,11 +987,6 @@
   resolved "https://registry.yarnpkg.com/@types/stack-utils/-/stack-utils-2.0.3.tgz#6209321eb2c1712a7e7466422b8cb1fc0d9dd5d8"
   integrity sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==
 
-"@types/tough-cookie@^4.0.5":
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/@types/tough-cookie/-/tough-cookie-4.0.5.tgz#cb6e2a691b70cb177c6e3ae9c1d2e8b2ea8cd304"
-  integrity sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==
-
 "@types/uuid@^10.0.0":
   version "10.0.0"
   resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-10.0.0.tgz#e9c07fe50da0f53dc24970cca94d619ff03f6f6d"
@@ -1018,6 +1050,24 @@ acorn@^8.11.0, acorn@^8.4.1:
   version "8.14.0"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.14.0.tgz#063e2c70cac5fb4f6467f0b11152e04c682795b0"
   integrity sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==
+
+agent-twitter-client@^0.0.18:
+  version "0.0.18"
+  resolved "https://registry.yarnpkg.com/agent-twitter-client/-/agent-twitter-client-0.0.18.tgz#9cb66321e0ccb3d3130cf4971ceb0c7f90863fe4"
+  integrity sha512-HncH5mlFcGYLEl5wNEkwtdolcmdxqEMIsqO4kTqiTp5P19O25Zr4P6LNJZz1UTjPRyXDxj+BLmmk/Ou7O0QzEg==
+  dependencies:
+    "@roamhq/wrtc" "^0.8.0"
+    "@sinclair/typebox" "^0.32.20"
+    headers-polyfill "^3.1.2"
+    json-stable-stringify "^1.0.2"
+    node-fetch "^3.3.2"
+    otpauth "^9.2.2"
+    set-cookie-parser "^2.6.0"
+    tough-cookie "^4.1.2"
+    tslib "^2.5.2"
+    twitter-api-v2 "^1.18.2"
+    undici "^7.1.1"
+    ws "^8.18.0"
 
 agentkeepalive@^4.2.1:
   version "4.6.0"
@@ -1607,6 +1657,13 @@ discord.js@^14.17.3:
     tslib "^2.6.3"
     undici "6.21.1"
 
+domexception@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/domexception/-/domexception-4.0.0.tgz#4ad1be56ccadc86fc76d033353999a8037d03673"
+  integrity sha512-A2is4PLG+eeSfoTMA95/s4pvAoSo2mKtiM5jlHkAVewmiO8ISFTFKZjH7UAM1Atli/OT/7JHOrJRJiMKUZKYBw==
+  dependencies:
+    webidl-conversions "^7.0.0"
+
 dotenv@^16.4.5:
   version "16.4.7"
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.4.7.tgz#0e20c5b82950140aa99be360a8a5f52335f53c26"
@@ -2038,21 +2095,6 @@ globals@^11.1.0:
   version "11.12.0"
   resolved "https://registry.yarnpkg.com/globals/-/globals-11.12.0.tgz#ab8795338868a0babd8525758018c2a7eb95c42e"
   integrity sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==
-
-goat-x@^1.1.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/goat-x/-/goat-x-1.2.0.tgz#b3684ee9e315f34eebdc95da442f17775123b29b"
-  integrity sha512-I3GqnqnDCAPmmBJHTElj/MvVz4hilHsG00pAa7FljpN0sOIgo+8O8Fos39LkUX+7mcTlV2DIHR9tKhUyme+N1A==
-  dependencies:
-    "@sinclair/typebox" "^0.32.20"
-    headers-polyfill "^3.1.2"
-    json-stable-stringify "^1.0.2"
-    node-fetch "^3.3.2"
-    otpauth "^9.2.2"
-    set-cookie-parser "^2.6.0"
-    tough-cookie "^4.1.2"
-    tslib "^2.5.2"
-    twitter-api-v2 "^1.18.2"
 
 gopd@^1.0.1, gopd@^1.2.0:
   version "1.2.0"
@@ -3900,6 +3942,11 @@ undici@6.21.1:
   resolved "https://registry.yarnpkg.com/undici/-/undici-6.21.1.tgz#336025a14162e6837e44ad7b819b35b6c6af0e05"
   integrity sha512-q/1rj5D0/zayJB2FraXdaWxbhWiNKDvu8naDT2dl1yTlvJp4BLtOcp2a5BvgGNQpYYJzau7tf1WgKv3b+7mqpQ==
 
+undici@^7.1.1:
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/undici/-/undici-7.3.0.tgz#87e48cc9728f3d09bf7b34635e9b63886873ac3e"
+  integrity sha512-Qy96NND4Dou5jKoSJ2gm8ax8AJM/Ey9o9mz7KN1bb9GP+G0l20Zw8afxTnY2f4b7hmhn/z8aC2kfArVQlAhFBw==
+
 universalify@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/universalify/-/universalify-0.2.0.tgz#6451760566fa857534745ab1dde952d1b1761be0"
@@ -3967,6 +4014,11 @@ webidl-conversions@^3.0.0:
   resolved "https://registry.yarnpkg.com/webidl-conversions/-/webidl-conversions-3.0.1.tgz#24534275e2a7bc6be7bc86611cc16ae0a5654871"
   integrity sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==
 
+webidl-conversions@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/webidl-conversions/-/webidl-conversions-7.0.0.tgz#256b4e1882be7debbf01d05f0aa2039778ea080a"
+  integrity sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==
+
 whatwg-url@^5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/whatwg-url/-/whatwg-url-5.0.0.tgz#966454e8765462e37644d3626f6742ce8b70965d"
@@ -4022,7 +4074,7 @@ write-file-atomic@^4.0.2:
     imurmurhash "^0.1.4"
     signal-exit "^3.0.7"
 
-ws@^8.17.0:
+ws@^8.17.0, ws@^8.18.0:
   version "8.18.1"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.18.1.tgz#ea131d3784e1dfdff91adb0a4a116b127515e3cb"
   integrity sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w==

@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { Scraper, SearchMode } from "goat-x";
+import { Scraper, SearchMode } from "agent-twitter-client";
 import { randomInterval, RandomIntervalHandle } from "../utils";
 
 import { Character } from "../characters";

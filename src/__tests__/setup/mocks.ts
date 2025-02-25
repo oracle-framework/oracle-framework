@@ -1,4 +1,4 @@
-import { Scraper, SearchMode, Profile } from "goat-x";
+import { Scraper, SearchMode, Profile } from "agent-twitter-client";
 
 // Mock the completions module
 jest.mock("../../completions", () => ({
@@ -86,7 +86,7 @@ const mockSendTweet = jest
     } as Response);
   });
 
-jest.mock("goat-x", () => ({
+jest.mock("agent-twitter-client", () => ({
   Scraper: jest.fn(() => ({
     login: jest.fn(),
     getCookies: jest.fn().mockResolvedValue([]),
