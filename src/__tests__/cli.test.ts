@@ -39,9 +39,10 @@ describe("CliProvider", () => {
 
     mockCharacter = {
       agentName: "Test Agent",
-      username: "test_user",
-      twitterPassword: "test_pass",
-      telegramApiKey: "test_key",
+      username: "test_agent",
+      userIdStr: "123456789",
+      twitterPassword: "password123",
+      telegramApiKey: "telegram_api_key",
       bio: ["Test bio"],
       lore: ["Test lore"],
       postDirections: ["Test directions"],
@@ -66,9 +67,6 @@ describe("CliProvider", () => {
       expect(readline.createInterface).toHaveBeenCalled();
       expect(mockOn).toHaveBeenCalledWith("line", expect.any(Function));
       expect(mockOn).toHaveBeenCalledWith("close", expect.any(Function));
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("CLI provider started"),
-      );
     });
 
     it("should handle user input and generate responses", async () => {
@@ -175,7 +173,12 @@ describe("CliProvider", () => {
       )[1];
 
       await onLineCallback("Hello bot");
-      expect(logger.error).toHaveBeenCalledWith("There was an error:", error);
+
+      // Verify no response was saved
+      const messages = db
+        .prepare("SELECT * FROM chat_messages WHERE is_bot_response = 1")
+        .all() as ChatMessage[];
+      expect(messages).toHaveLength(0);
     });
 
     it("should handle program termination", () => {

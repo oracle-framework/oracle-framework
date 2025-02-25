@@ -5,12 +5,13 @@ import { db } from "../database/db";
 import {
   saveTweet,
   getTweetById,
-  getTwitterHistory,
   getUserInteractionCount,
 } from "../database/tweets";
-import { Tweet } from "../socialmedia/types";
+import { Tweet } from "../database/types";
+
 jest.mock("../logger", () => ({
   logger: {
+    info: jest.fn(),
     error: jest.fn(),
     debug: jest.fn(),
   },
@@ -22,24 +23,73 @@ describe("Twitter Database Operations", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     testDb = db;
-    testDb.prepare("DELETE FROM twitter_history").run();
+    // Make sure the schema is properly initialized
+    const vectorTableExists = testDb
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='tweets'",
+      )
+      .get();
+
+    // Check if the character_id_str column exists
+    if (vectorTableExists) {
+      const columnInfo = testDb
+        .prepare("PRAGMA table_info(tweets)")
+        .all()
+        .map((col: any) => col.name);
+
+      if (!columnInfo.includes("character_id_str")) {
+        // The tweets table exists but doesn't have character_id_str column
+        // This indicates we need to recreate the table with the proper schema
+        testDb.prepare("DROP TABLE tweets").run();
+        testDb.exec(`
+          CREATE TABLE tweets (
+            id_str VARCHAR(50) NOT NULL,              
+            user_id_str VARCHAR(50) NOT NULL,         
+            user_screen_name VARCHAR(20) NOT NULL,    
+            full_text TEXT NOT NULL,                  
+            conversation_id_str VARCHAR(50) NOT NULL, 
+            tweet_created_at DATETIME NOT NULL,
+            in_reply_to_status_id_str VARCHAR(50),    
+            in_reply_to_user_id_str VARCHAR(50),      
+            in_reply_to_screen_name VARCHAR(20),
+            character_id_str VARCHAR(50) NOT NULL
+          );
+          
+          CREATE INDEX IF NOT EXISTS idx_tweets_id_str ON tweets(id_str);
+          CREATE INDEX IF NOT EXISTS idx_tweets_user_id_str ON tweets(user_id_str);
+          CREATE INDEX IF NOT EXISTS idx_tweets_conversation_id_str ON tweets(conversation_id_str);
+          CREATE INDEX IF NOT EXISTS idx_tweets_tweet_created_at ON tweets(tweet_created_at);
+          CREATE INDEX IF NOT EXISTS idx_tweets_in_reply_to_status_id_str ON tweets(in_reply_to_status_id_str);
+          CREATE INDEX IF NOT EXISTS idx_tweets_in_reply_to_user_id_str ON tweets(in_reply_to_user_id_str);
+          CREATE INDEX IF NOT EXISTS idx_tweets_character_id_str ON tweets(character_id_str);
+        `);
+      }
+    }
+
+    // Use a transaction for better test isolation
+    const transaction = testDb.transaction(() => {
+      testDb.prepare("DELETE FROM tweets").run();
+    });
+    transaction();
   });
 
   describe("saveTweet", () => {
     it("should handle missing required fields", async () => {
       const invalidTweet = {
-        id_str: "", // intentionally empty to test validation
-        tweet_created_at: new Date().toISOString(),
-        full_text: "", // also empty to match error message
-        user_id_str: "user123",
-        conversation_id_str: "23452435",
-        in_reply_to_status_id_str: "1234567890",
-        in_reply_to_user_id_str: "", // not required field
-        in_reply_to_screen_name: "", // not required field
+        idStr: "", // intentionally empty to test validation
+        tweetCreatedAt: new Date().toISOString(),
+        fullText: "", // also empty to match error message
+        userIdStr: "user123",
+        userScreenName: "", // missing but required
+        conversationIdStr: "23452435",
+        inReplyToStatusIdStr: "1234567890",
+        inReplyToUserIdStr: "", // not required field
+        inReplyToScreenName: "", // not required field
+        characterIdStr: "characterId",
       };
 
       const errorMsg =
-        'Missing required fields for tweet: {"id_str":true,"user_id_str":false,"user_screen_name":true,"full_text":true,"conversation_id_str":false,"tweet_created_at":false}';
+        'Missing required fields for tweet: {"idStr":true,"userIdStr":false,"userScreenName":true,"fullText":true,"conversationIdStr":false,"tweetCreatedAt":false,"characterIdStr":false}';
       expect(() => saveTweet(invalidTweet as Tweet)).toThrow(errorMsg);
       expect(logger.error).toHaveBeenCalledWith(
         "Error inserting tweet:",
@@ -54,15 +104,16 @@ describe("Twitter Database Operations", () => {
       });
 
       const tweet = {
-        id_str: "1234567890",
-        user_id_str: "user123",
-        user_screen_name: "testuser",
-        full_text: "test input",
-        conversation_id_str: "23452435",
-        tweet_created_at: new Date().toISOString(),
-        in_reply_to_status_id_str: "1234567890",
-        in_reply_to_user_id_str: "user123",
-        in_reply_to_screen_name: "testuser",
+        idStr: "1234567890",
+        userIdStr: "user123",
+        userScreenName: "testuser",
+        fullText: "test input",
+        conversationIdStr: "23452435",
+        tweetCreatedAt: new Date().toISOString(),
+        inReplyToStatusIdStr: "1234567890",
+        inReplyToUserIdStr: "user123",
+        inReplyToScreenName: "testuser",
+        characterIdStr: "characterId",
       };
 
       expect(() => saveTweet(tweet)).toThrow(mockError);
@@ -79,7 +130,7 @@ describe("Twitter Database Operations", () => {
         throw new Error("Database error");
       });
 
-      const result = getTweetById("nonexistent");
+      const result = getTweetById("characterId", "nonexistent");
       expect(result).toBeUndefined();
       expect(logger.error).toHaveBeenCalled();
     });
@@ -92,7 +143,7 @@ describe("Twitter Database Operations", () => {
 
       // Insert test data
       const stmt = testDb.prepare(`
-        INSERT INTO twitter_history (
+        INSERT INTO tweets (
           id_str,
           user_id_str,
           user_screen_name,
@@ -101,8 +152,9 @@ describe("Twitter Database Operations", () => {
           tweet_created_at,
           in_reply_to_status_id_str,
           in_reply_to_user_id_str,
-          in_reply_to_screen_name
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+          in_reply_to_screen_name,
+          character_id_str
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 
       stmt.run(
         "192837465748392",
@@ -114,6 +166,7 @@ describe("Twitter Database Operations", () => {
         "132323452337890",
         "999444555000333",
         "testuser",
+        "characterId",
       );
 
       stmt.run(
@@ -126,9 +179,11 @@ describe("Twitter Database Operations", () => {
         "132323452337890",
         "243523423452435",
         "testuser",
+        "characterId",
       );
 
       const count = getUserInteractionCount(
+        "characterId",
         "999444555000333",
         2 * 60 * 60 * 1000,
       );
@@ -140,7 +195,11 @@ describe("Twitter Database Operations", () => {
         throw new Error("Database error");
       });
 
-      const count = getUserInteractionCount("243523423452435", 3600000);
+      const count = getUserInteractionCount(
+        "characterId",
+        "243523423452435",
+        3600000,
+      );
       expect(count).toBe(0);
       expect(logger.error).toHaveBeenCalled();
     });

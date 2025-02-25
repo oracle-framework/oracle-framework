@@ -1,7 +1,8 @@
 import { Database } from "better-sqlite3";
+import * as sqliteVec from "sqlite-vec";
 
 export const initializeSchema = (db: Database) => {
-  // Check if twitter_history table exists
+  // Check if tweets table exists
   const tweetsTableExists = db
     .prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='tweets'",
@@ -74,7 +75,6 @@ export const initializeSchema = (db: Database) => {
     .get();
 
   if (!vectorTweetsTableExists) {
-    // Vector Tweets Table
     db.exec(`
       CREATE VIRTUAL TABLE vector_tweets USING vec0(
         username TEXT,
@@ -88,7 +88,7 @@ export const initializeSchema = (db: Database) => {
     `);
   }
 
-  // Check if promptstable exists
+  // Check if prompts table exists
   const promptsTableExists = db
     .prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='prompts'",
