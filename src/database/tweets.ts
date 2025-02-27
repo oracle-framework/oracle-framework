@@ -98,7 +98,10 @@ export const savePrompt = (prompt: Prompt): void => {
   }
 };
 
-export const getTweetById = (characterIdStr: string, idStr: string): Tweet | undefined => {
+export const getTweetById = (
+  characterIdStr: string,
+  idStr: string,
+): Tweet | undefined => {
   try {
     logger.debug(`Checking for tweet ID: ${idStr}`);
 

@@ -20,7 +20,7 @@ const baseLogger = pino({
 });
 
 // Fix: Ensure pretty logging in development
-const logger = isDevelopment
+export const logger = isDevelopment
   ? pino({
       level: process.env["LOG_LEVEL"] || "info",
       transport: {
@@ -40,21 +40,3 @@ const logger = isDevelopment
         sync: false,
       }),
     );
-
-// Production: Add log rotation
-if (!isDevelopment) {
-  import("pino-roll").then(({ default: rotate }) => {
-    rotate(logFilePath, {
-      size: "10m",
-      interval: "1d",
-      compress: true,
-      maxFiles: 7,
-      mkdir: true,
-      dateFormat: "YYYY-MM-DD",
-      nameFormat: "app.log.%DATE%",
-    });
-  });
-}
-
-// Named export so your existing imports don't break
-export { logger };

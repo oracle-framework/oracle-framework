@@ -5,7 +5,8 @@
  * @param callback - The function to be executed at random intervals
  * @param lowerBoundMs - The minimum interval duration in milliseconds
  * @param upperBoundMs - The maximum interval duration in milliseconds
- * @returns A Timer object that can be used to clear the interval with clearTimeout()
+ * @param initialIntervalMs - Optional initial interval to use (for resuming)
+ * @returns An object containing the timer and current interval information
  * @throws {Error} If lowerBoundMs is greater than upperBoundMs
  *
  * @example
@@ -17,26 +18,37 @@
  *
  * // Later: clearTimeout(timer) to stop
  */
+export interface RandomIntervalHandle {
+  timer: NodeJS.Timeout;
+  currentInterval: number;
+}
+
 export const randomInterval = (
   callback: () => void,
   lowerBoundMs: number,
   upperBoundMs: number,
-): NodeJS.Timer => {
+  initialIntervalMs?: number,
+): RandomIntervalHandle => {
   if (lowerBoundMs > upperBoundMs) {
     throw new Error("Lower bound cannot be greater than upper bound.");
   }
+
   // Function to generate a random interval within the specified bounds
   const getRandomInterval = () =>
     Math.floor(Math.random() * (upperBoundMs - lowerBoundMs + 1)) +
     lowerBoundMs;
 
+  let currentInterval = initialIntervalMs || getRandomInterval();
+  let timer: NodeJS.Timeout;
+
   const runWithRandomInterval = () => {
     callback(); // Execute the callback
     clearTimeout(timer); // Clear the current timer
-    const nextInterval = getRandomInterval(); // Generate a new random interval
-    timer = setTimeout(runWithRandomInterval, nextInterval); // Set up the next execution
+    currentInterval = getRandomInterval(); // Generate a new random interval
+    timer = setTimeout(runWithRandomInterval, currentInterval); // Set up the next execution
   };
 
-  let timer = setTimeout(runWithRandomInterval, getRandomInterval()); // Start the first interval
-  return timer;
+  timer = setTimeout(runWithRandomInterval, currentInterval); // Start the first interval
+
+  return { timer, currentInterval };
 };

@@ -1,6 +1,7 @@
-import fs from "fs";
-import path from "path";
-
+import * as fs from "fs";
+import * as path from "path";
+import dotenv from "dotenv";
+import { logger } from "../logger";
 import { ImageProviderType, MS2Config } from "../images/types";
 import {
   AudioProviderType,
@@ -61,11 +62,18 @@ export type Character = {
   audioGenerationBehavior?: AudioGenerationBehavior;
 };
 
+let CHARACTERS: Character[] = [];
+
 function loadCharacterConfigs(): Character[] {
+  // Ensure environment variables are loaded
+  dotenv.config();
+
+  logger.info("Starting to load character configs...");
   const characterFile = fs.readFileSync(
     path.join(__dirname, "characters.json"),
     "utf8",
   );
+  logger.info("Read characters.json file");
   const configs = JSON.parse(characterFile);
 
   // Ensure configs is an array
@@ -75,36 +83,70 @@ function loadCharacterConfigs(): Character[] {
     );
   }
 
+  // Debug log for environment variables
+  logger.info("Environment variables state:");
+  logger.info(
+    `AGENT_TELEGRAM_API_KEY: ${process.env.AGENT_TELEGRAM_API_KEY ? "present" : "missing"}`,
+  );
+  logger.info(
+    `AGENT_TWITTER_PASSWORD: ${process.env.AGENT_TWITTER_PASSWORD ? "present" : "missing"}`,
+  );
+  logger.info(
+    `AGENT_TWITTER_EMAIL: ${process.env.AGENT_TWITTER_EMAIL ? "present" : "missing"}`,
+  );
+  logger.info(
+    `AGENT_DISCORD_API_KEY: ${process.env.AGENT_DISCORD_API_KEY ? "present" : "missing"}`,
+  );
+
   // Add environment variables to each character config
-  return configs.map(config => ({
-    ...config,
-    twitterPassword: process.env[`AGENT_TWITTER_PASSWORD`] || "",
-    twitterEmail: process.env[`AGENT_TWITTER_EMAIL`] || "",
-    telegramApiKey: process.env[`AGENT_TELEGRAM_API_KEY`] || "",
-    discordApiKey: process.env[`AGENT_DISCORD_API_KEY`] || "",
-    discordBotUsername: config.discordBotUsername,
-    imageGenerationBehavior:
-      config.imageGenerationBehavior?.provider === "ms2"
-        ? {
-            ...config.imageGenerationBehavior,
-            ms2: {
-              ...config.imageGenerationBehavior.ms2,
-              apiKey: process.env[`AGENT_MS2_API_KEY`] || "",
-            },
-          }
-        : config.imageGenerationBehavior,
-    audioGenerationBehavior:
-      config.audioGenerationBehavior?.provider === "openai"
-        ? {
-            ...config.audioGenerationBehavior,
-            openai: {
-              ...config.audioGenerationBehavior.openai,
-              apiKey: process.env[`AGENT_OPENAI_API_KEY`] || "",
-            },
-          }
-        : config.audioGenerationBehavior,
-  }));
+  return configs.map(config => {
+    const telegramApiKey = process.env.AGENT_TELEGRAM_API_KEY || "";
+    logger.info(`Processing character ${config.username}:`);
+    logger.info(
+      `- Telegram API key: ${telegramApiKey ? "present" : "missing"}`,
+    );
+
+    return {
+      ...config,
+      twitterPassword: process.env.AGENT_TWITTER_PASSWORD || "",
+      twitterEmail: process.env.AGENT_TWITTER_EMAIL || "",
+      telegramApiKey,
+      discordApiKey: process.env.AGENT_DISCORD_API_KEY || "",
+      discordBotUsername: config.discordBotUsername,
+      imageGenerationBehavior:
+        config.imageGenerationBehavior?.provider === "ms2"
+          ? {
+              ...config.imageGenerationBehavior,
+              ms2: {
+                ...config.imageGenerationBehavior.ms2,
+                apiKey: process.env.AGENT_MS2_API_KEY || "",
+              },
+            }
+          : config.imageGenerationBehavior,
+      audioGenerationBehavior:
+        config.audioGenerationBehavior?.provider === "openai"
+          ? {
+              ...config.audioGenerationBehavior,
+              openai: {
+                ...config.audioGenerationBehavior.openai,
+                apiKey: process.env.AGENT_OPENAI_API_KEY || "",
+              },
+            }
+          : config.audioGenerationBehavior,
+    };
+  });
 }
 
-// Load all characters
-export const CHARACTERS = loadCharacterConfigs();
+// Initialize characters
+export function initializeCharacters() {
+  CHARACTERS = loadCharacterConfigs();
+  return CHARACTERS;
+}
+
+// Export getter for characters
+export function getCharacters(): Character[] {
+  if (CHARACTERS.length === 0) {
+    return initializeCharacters();
+  }
+  return CHARACTERS;
+}
