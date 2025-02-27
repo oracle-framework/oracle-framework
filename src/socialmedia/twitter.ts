@@ -152,7 +152,10 @@ export class TwitterProvider {
     );
 
     try {
-      const botHistory = await getTwitterHistory(this.character.userIdStr, this.character.userIdStr);
+      const botHistory = await getTwitterHistory(
+        this.character.userIdStr,
+        this.character.userIdStr,
+      );
       const formattedHistory = formatTwitterHistoryForPrompt(botHistory);
       let completion;
       let isSimilar = true;
@@ -175,7 +178,9 @@ export class TwitterProvider {
         // the 280 here is the twitter limit
         isTooLong = completion.reply.length > 280;
         if (isTooLong) {
-          logger.warn(`Generated tweet is ${completion.reply.length} characters long, retrying...`);
+          logger.warn(
+            `Generated tweet is ${completion.reply.length} characters long, retrying...`,
+          );
           maxPostLength -= 50;
         }
 
@@ -318,8 +323,16 @@ export class TwitterProvider {
         `The most recent tweet was ${mostRecentTweetMinutesAgo} minutes ago.`,
       );
 
-      const history = getTwitterHistory(this.character.userIdStr, this.character.userIdStr, 10);
-      const historyByUser = getTwitterHistory(this.character.userIdStr, mostRecentTweet.userIdStr, 10);
+      const history = getTwitterHistory(
+        this.character.userIdStr,
+        this.character.userIdStr,
+        10,
+      );
+      const historyByUser = getTwitterHistory(
+        this.character.userIdStr,
+        mostRecentTweet.userIdStr,
+        10,
+      );
 
       const formattedHistory = formatTwitterHistoryForPrompt(
         history.concat(historyByUser),
@@ -352,7 +365,9 @@ export class TwitterProvider {
         // the 280 here is the twitter limit
         isTooLong = completion.reply.length > 280;
         if (isTooLong) {
-          logger.warn(`Generated tweet is ${completion.reply.length} characters long, retrying...`);
+          logger.warn(
+            `Generated tweet is ${completion.reply.length} characters long, retrying...`,
+          );
           maxPostLength -= 50;
         }
 
@@ -426,8 +441,7 @@ export class TwitterProvider {
       logger.info("reply tweet was inserted into tweets.");
       //save prompt
       savePrompt({
-        tweetIdStr:
-          newTweetJson.data.create_tweet.tweet_results.result.rest_id,
+        tweetIdStr: newTweetJson.data.create_tweet.tweet_results.result.rest_id,
         prompt: completion.prompt,
       });
       logger.info("reply tweet prompt was inserted into prompts.");
@@ -446,7 +460,9 @@ export class TwitterProvider {
             x.userScreenName,
           ),
       )
-      .filter(x => getTweetById(this.character.userIdStr, x.idStr) === undefined)
+      .filter(
+        x => getTweetById(this.character.userIdStr, x.idStr) === undefined,
+      )
       .filter(x => {
         const interactionCount = getUserInteractionCount(
           this.character.userIdStr,
@@ -489,7 +505,8 @@ export class TwitterProvider {
           let attemptCount = 0;
           const maxAttempts = 5;
           // maxpostlength is what gets passed to the prompt.  it does not abide, so its more like a suggestion
-          let maxPostLength = this.character.postingBehavior.maxPostLength || 280;
+          let maxPostLength =
+            this.character.postingBehavior.maxPostLength || 280;
 
           while ((isSimilar || isTooLong) && attemptCount < maxAttempts) {
             completion = await generateReply(
@@ -510,7 +527,9 @@ export class TwitterProvider {
             // the 280 here is the twitter limit
             isTooLong = completion.reply.length > 280;
             if (isTooLong) {
-              logger.warn(`Generated tweet is ${completion.reply.length} characters long, retrying...`);
+              logger.warn(
+                `Generated tweet is ${completion.reply.length} characters long, retrying...`,
+              );
               maxPostLength -= 50;
             }
 
@@ -522,7 +541,6 @@ export class TwitterProvider {
             return;
           }
 
-          
           if (!completion) {
             logger.error("No completion found");
             return;
@@ -530,7 +548,6 @@ export class TwitterProvider {
           logger.info(
             `Generated reply for ${mention.idStr}: ${completion.reply}`,
           );
-
 
           const sendTweetResponse = await this.scraper.sendTweet(
             completion.reply,
@@ -619,9 +636,17 @@ export class TwitterProvider {
 
   private getTwitterHistoryByMention(mention: Mention): Tweet[] {
     let history: Tweet[] = [];
-    history.push(...getTwitterHistory(this.character.userIdStr, mention.userIdStr, 10));
+    history.push(
+      ...getTwitterHistory(this.character.userIdStr, mention.userIdStr, 10),
+    );
     if (mention.conversationId) {
-      history.push(...getConversationHistory(this.character.userIdStr, mention.conversationId, 10));
+      history.push(
+        ...getConversationHistory(
+          this.character.userIdStr,
+          mention.conversationId,
+          10,
+        ),
+      );
     }
     return history;
   }
@@ -650,7 +675,10 @@ export class TwitterProvider {
       }
 
       // Skip if we've already processed this tweet
-      const existingTweet = getTweetById(this.character.userIdStr, mention.idStr);
+      const existingTweet = getTweetById(
+        this.character.userIdStr,
+        mention.idStr,
+      );
       if (existingTweet) {
         logger.info(`Skipping mention ${mention.idStr}: Already processed`);
         return true;

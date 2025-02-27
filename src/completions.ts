@@ -250,7 +250,10 @@ export const generateReply = async (
  * @param character
  * @param recentHistory
  */
-export const generateTopicPost = async (character: Character, maxPostLength: number) => {
+export const generateTopicPost = async (
+  character: Character,
+  maxPostLength: number,
+) => {
   const topic = character
     .topics!.sort(() => Math.random() - 0.5)
     .slice(0, 1)[0];
