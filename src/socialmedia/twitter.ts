@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { Scraper, SearchMode } from "goat-x";
+import { Scraper, SearchMode } from "agent-twitter-client";
 
 import { Character } from "../characters";
 import {
@@ -156,11 +156,14 @@ export class TwitterProvider {
       const formattedHistory = formatTwitterHistoryForPrompt(botHistory);
       let completion;
       let isSimilar = true;
+      let isTooLong = true;
       let attemptCount = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5;
+      // maxpostlength is what gets passed to the prompt.  it does not abide, so its more like a suggestion
+      let maxPostLength = this.character.postingBehavior.maxPostLength || 280;
 
-      while (isSimilar && attemptCount < maxAttempts) {
-        completion = await generateTopicPost(this.character);
+      while ((isSimilar || isTooLong) && attemptCount < maxAttempts) {
+        completion = await generateTopicPost(this.character, maxPostLength);
         logger.info("LLM completion attempt done.");
 
         isSimilar = await isTweetTooSimilar(completion.reply);
@@ -169,10 +172,17 @@ export class TwitterProvider {
             `Generated tweet is too similar, retrying... Attempt ${attemptCount + 1}`,
           );
         }
+        // the 280 here is the twitter limit
+        isTooLong = completion.reply.length > 280;
+        if (isTooLong) {
+          logger.warn(`Generated tweet is ${completion.reply.length} characters long, retrying...`);
+          maxPostLength -= 50;
+        }
+
         attemptCount++;
       }
 
-      if (isSimilar) {
+      if (isSimilar || isTooLong) {
         logger.error("Max attempts reached. Skipping tweet generation.");
         return;
       }
@@ -315,14 +325,49 @@ export class TwitterProvider {
         history.concat(historyByUser),
       );
 
-      const completion = await generateReply(
-        mostRecentTweet.fullText,
-        this.character,
-        false,
-        formattedHistory,
-      );
+      let completion;
+      let isSimilar = true;
+      let isTooLong = true;
+      let attemptCount = 0;
+      const maxAttempts = 5;
+      // maxpostlength is what gets passed to the prompt.  it does not abide, so its more like a suggestion
+      let maxPostLength = this.character.postingBehavior.maxPostLength || 280;
 
-      logger.info("LLM completion done.");
+      while ((isSimilar || isTooLong) && attemptCount < maxAttempts) {
+        completion = await generateReply(
+          mostRecentTweet.fullText,
+          this.character,
+          false,
+          formattedHistory,
+          maxPostLength,
+        );
+        logger.info("LLM completion attempt done.");
+
+        isSimilar = await isTweetTooSimilar(completion.reply);
+        if (isSimilar) {
+          logger.warn(
+            `Generated tweet is too similar, retrying... Attempt ${attemptCount + 1}`,
+          );
+        }
+        // the 280 here is the twitter limit
+        isTooLong = completion.reply.length > 280;
+        if (isTooLong) {
+          logger.warn(`Generated tweet is ${completion.reply.length} characters long, retrying...`);
+          maxPostLength -= 50;
+        }
+
+        attemptCount++;
+      }
+
+      if (isSimilar || isTooLong) {
+        logger.error("Max attempts reached. Skipping tweet generation.");
+        return;
+      }
+
+      if (!completion) {
+        logger.error("No completion found");
+        return;
+      }
 
       const sendTweetResponse = await this.scraper.sendTweet(
         completion.reply,
@@ -438,17 +483,54 @@ export class TwitterProvider {
           await new Promise(resolve => setTimeout(resolve, 15000)); // Default delay
           const history = this.getTwitterHistoryByMention(mention);
           const formattedHistory = formatTwitterHistoryForPrompt(history);
+          let completion;
+          let isSimilar = true;
+          let isTooLong = true;
+          let attemptCount = 0;
+          const maxAttempts = 5;
+          // maxpostlength is what gets passed to the prompt.  it does not abide, so its more like a suggestion
+          let maxPostLength = this.character.postingBehavior.maxPostLength || 280;
 
-          const completion = await generateReply(
-            mention.fullText,
-            this.character,
-            false,
-            formattedHistory,
-          );
+          while ((isSimilar || isTooLong) && attemptCount < maxAttempts) {
+            completion = await generateReply(
+              mention.fullText,
+              this.character,
+              false,
+              formattedHistory,
+              maxPostLength,
+            );
+            logger.info("LLM completion attempt done.");
 
+            isSimilar = await isTweetTooSimilar(completion.reply);
+            if (isSimilar) {
+              logger.warn(
+                `Generated tweet is too similar, retrying... Attempt ${attemptCount + 1}`,
+              );
+            }
+            // the 280 here is the twitter limit
+            isTooLong = completion.reply.length > 280;
+            if (isTooLong) {
+              logger.warn(`Generated tweet is ${completion.reply.length} characters long, retrying...`);
+              maxPostLength -= 50;
+            }
+
+            attemptCount++;
+          }
+
+          if (isSimilar || isTooLong) {
+            logger.error("Max attempts reached. Skipping tweet generation.");
+            return;
+          }
+
+          
+          if (!completion) {
+            logger.error("No completion found");
+            return;
+          }
           logger.info(
             `Generated reply for ${mention.idStr}: ${completion.reply}`,
           );
+
 
           const sendTweetResponse = await this.scraper.sendTweet(
             completion.reply,

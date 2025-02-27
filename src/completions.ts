@@ -146,7 +146,6 @@ export const handleBannedAndLengthRetries = async (
   prompt: string,
   generatedReply: string,
   character: Character,
-  maxLength: number = 280,
   banThreshold: number = 3,
   inputMessage: string,
 ) => {
@@ -154,7 +153,7 @@ export const handleBannedAndLengthRetries = async (
   let banCount = 0;
   let wasBanned = await checkIfPromptWasBanned(currentReply, character);
 
-  while (wasBanned || currentReply.length > maxLength) {
+  while (wasBanned) {
     if (wasBanned) {
       banCount++;
       logger.info(`The prompt was banned! Attempt ${banCount}/${banThreshold}`);
@@ -173,8 +172,6 @@ export const handleBannedAndLengthRetries = async (
         character.model = originalModel; // Restore original model
         break;
       }
-    } else {
-      logger.info(`The content was too long (>${maxLength})! Going again.`);
     }
 
     currentReply = await generateCompletionForCharacter(
@@ -198,6 +195,7 @@ export const generateReply = async (
   character: Character,
   isChatMode: boolean = false,
   recentHistory?: string,
+  maxPostLength?: number,
 ) => {
   try {
     const context = {
@@ -209,11 +207,13 @@ export const generateReply = async (
       originalPost: inputMessage,
       knowledge: character.knowledge?.join("\n") || "",
       chatModeRules: character.postingBehavior.chatModeRules?.join("\n") || "",
+      maxPostLength: maxPostLength?.toString() || "", // empty string would just be for chat mode, doesnt get passed to the prompt anyway
       recentHistory: recentHistory || "",
+      twitterRules: character.postingBehavior.twitterRules?.join("\n") || "",
     };
 
     const prompt = generatePrompt(context, isChatMode, inputMessage.length);
-
+    console.log(prompt);
     logger.debug(prompt);
 
     let reply = await generateCompletionForCharacter(
@@ -231,7 +231,6 @@ export const generateReply = async (
         prompt,
         reply,
         character,
-        280,
         3,
         inputMessage,
       );
@@ -251,7 +250,7 @@ export const generateReply = async (
  * @param character
  * @param recentHistory
  */
-export const generateTopicPost = async (character: Character) => {
+export const generateTopicPost = async (character: Character, maxPostLength: number) => {
   const topic = character
     .topics!.sort(() => Math.random() - 0.5)
     .slice(0, 1)[0];
@@ -264,11 +263,14 @@ export const generateTopicPost = async (character: Character) => {
     bio: character.bio.join("\n"),
     lore: character.lore.join("\n"),
     postDirections: character.postDirections.join("\n"),
+    maxPostLength: maxPostLength.toString(),
+    twitterRules: character.postingBehavior.twitterRules?.join("\n") || "",
   };
 
   const userPrompt = `Generate a post that is ${adjective} about ${topic}`;
 
   let prompt = replaceTemplateVariables(TOPIC_PROMPT, context);
+  console.log(prompt);
   let reply = await generateCompletionForCharacter(
     prompt,
     character,
@@ -280,7 +282,6 @@ export const generateTopicPost = async (character: Character) => {
     prompt,
     reply,
     character,
-    280,
     3,
     userPrompt,
   );
