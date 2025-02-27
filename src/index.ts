@@ -50,7 +50,7 @@ async function startDiscordBots() {
     if (character.discordApiKey) {
       try {
         logger.info(`Auto-starting Discord bot for ${character.username}`);
-        const discordProvider = new DiscordProvider(character);
+        const discordProvider = DiscordProvider.getInstance(character);
         await discordProvider.start();
       } catch (error) {
         logger.error(
@@ -60,6 +60,21 @@ async function startDiscordBots() {
       }
     }
   }
+}
+
+// Function to periodically log active Discord bots
+function startDiscordStatusMonitoring() {
+  const logActiveDiscordBots = () => {
+    const activeBots = DiscordProvider.getActiveBots();
+    logger.info(`Currently active Discord bots: ${activeBots.length}`);
+    activeBots.forEach(bot => {
+      logger.info(`- Active Discord bot: ${bot}`);
+    });
+  };
+
+  // Log initially and then every 5 minutes
+  logActiveDiscordBots();
+  return setInterval(logActiveDiscordBots, 5 * 60 * 1000);
 }
 
 async function startApp() {
@@ -74,6 +89,8 @@ async function startApp() {
     }
     if (process.env["AGENT_DISCORD_API_KEY"]) {
       await startDiscordBots();
+      // Start monitoring Discord bot status
+      startDiscordStatusMonitoring();
     }
   } catch (err) {
     logger.error({ err }, "Failed to start server:");
@@ -150,8 +167,59 @@ program
     if (!character) {
       throw new Error(`Character not found: ${username}`);
     }
-    const discordProvider = new DiscordProvider(character);
+    const discordProvider = DiscordProvider.getInstance(character);
     await discordProvider.start();
+  });
+
+// Add a debug command to show active Discord bots
+program
+  .command("discord-status")
+  .description("Show all active Discord bot connections")
+  .action(async () => {
+    const activeBots = DiscordProvider.getActiveBots();
+    console.log(`Currently active Discord bots: ${activeBots.length}`);
+    if (activeBots.length > 0) {
+      console.log("Active Discord bots:");
+      activeBots.forEach(bot => {
+        console.log(`- ${bot}`);
+      });
+    } else {
+      console.log("No active Discord bots found.");
+    }
+  });
+
+// Add a command to stop Discord bots
+program
+  .command("discord-stop")
+  .description("Stop Discord bot for an agent")
+  .argument("[username]", "Username of the agent (leave empty to stop all)")
+  .action(async username => {
+    if (username) {
+      // Stop specific bot
+      const character = CHARACTERS.find(x => x.username === username);
+      if (!character) {
+        throw new Error(`Character not found: ${username}`);
+      }
+      console.log(`Stopping Discord bot for ${username}...`);
+      const provider = DiscordProvider.getInstance(character);
+      await provider.stop();
+      console.log(`Discord bot for ${username} stopped.`);
+    } else {
+      // Stop all bots
+      const activeBots = DiscordProvider.getActiveBots();
+      console.log(`Stopping all ${activeBots.length} active Discord bots...`);
+
+      for (const botName of activeBots) {
+        const character = CHARACTERS.find(x => x.username === botName);
+        if (character) {
+          const provider = DiscordProvider.getInstance(character);
+          await provider.stop();
+          console.log(`Discord bot for ${botName} stopped.`);
+        }
+      }
+
+      console.log("All Discord bots stopped.");
+    }
   });
 
 program
