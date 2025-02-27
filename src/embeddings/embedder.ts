@@ -1,21 +1,28 @@
-import { pipeline } from "@xenova/transformers";
+import { logger } from "../logger";
 
-// Load the embedding model
-let embedder: any;
+let pipeline: any = null;
 
-export async function embedText(text: string): Promise<number[]> {
-  if (!embedder) {
-    embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
-  }
-
-  const output = await embedder(text, { pooling: "mean", normalize: true });
-  const embedding = Array.from(output.data) as number[];
-
-  if (embedding.length !== 384) {
-    throw new Error(
-      `Embedding size mismatch: expected 384, got ${embedding.length}`,
+export async function initializeEmbedder() {
+  try {
+    const { pipeline: transformersPipeline } = await import(
+      "@xenova/transformers"
     );
+    pipeline = await transformersPipeline(
+      "feature-extraction",
+      "Xenova/all-MiniLM-L6-v2",
+    );
+    logger.info("Embedder initialized successfully");
+  } catch (error) {
+    logger.error({ error }, "Failed to initialize embedder");
+    throw error;
+  }
+}
+
+export async function generateEmbedding(text: string): Promise<Float32Array> {
+  if (!pipeline) {
+    await initializeEmbedder();
   }
 
-  return embedding;
+  const output = await pipeline(text, { pooling: "mean", normalize: true });
+  return output.data;
 }

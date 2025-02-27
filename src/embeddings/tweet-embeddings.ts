@@ -1,5 +1,12 @@
 import { db } from "../database/db";
-import { embedText } from "./embedder";
+import { generateEmbedding as embedText } from "./embedder";
+import { logger } from "../logger";
+
+interface TweetRow {
+  tweet_id: string;
+  tweet_text: string;
+  tweet_text_embedding: Buffer;
+}
 
 export async function storeTweetEmbedding(
   username: string,
@@ -8,28 +15,42 @@ export async function storeTweetEmbedding(
   tweetTextSummary: string,
   tweetedAt: string,
 ) {
-  const tweetTextEmbedding = await embedText(tweetText);
-  const tweetTextSummaryEmbedding = await embedText(tweetTextSummary);
+  try {
+    const tweetTextEmbedding = await embedText(tweetText);
+    const tweetTextSummaryEmbedding = await embedText(tweetTextSummary);
 
-  const textBuffer = Buffer.from(new Float32Array(tweetTextEmbedding).buffer);
-  const summaryBuffer = Buffer.from(
-    new Float32Array(tweetTextSummaryEmbedding).buffer,
-  );
+    const textBuffer = Buffer.from(new Float32Array(tweetTextEmbedding).buffer);
+    const summaryBuffer = Buffer.from(
+      new Float32Array(tweetTextSummaryEmbedding).buffer,
+    );
 
-  db.prepare(
-    `
-      INSERT INTO vector_tweets (username, tweet_id, tweet_text, tweet_text_summary, tweeted_at, tweet_text_embedding, tweet_text_summary_embedding) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+    db.prepare(
+      `
+      INSERT INTO vector_tweets (
+        username, 
+        tweet_id, 
+        tweet_text, 
+        tweet_text_summary, 
+        tweeted_at, 
+        tweet_text_embedding, 
+        tweet_text_summary_embedding
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
-  ).run(
-    username,
-    tweetId,
-    tweetText,
-    tweetTextSummary,
-    tweetedAt,
-    textBuffer,
-    summaryBuffer,
-  );
+    ).run(
+      username,
+      tweetId,
+      tweetText,
+      tweetTextSummary,
+      tweetedAt,
+      textBuffer,
+      summaryBuffer,
+    );
+
+    logger.info(`Stored embedding for tweet ${tweetId}`);
+  } catch (error) {
+    logger.error("Error storing tweet embedding:", error);
+    throw error;
+  }
 }
 
 function decodeEmbedding(buffer: Buffer): number[] {
@@ -40,14 +61,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
   const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
   const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
   const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-
   return dotProduct / (normA * normB);
-}
-
-interface TweetRow {
-  tweet_id: string;
-  tweet_text: string;
-  tweet_text_embedding: Buffer;
 }
 
 export async function isTweetTooSimilar(
@@ -55,34 +69,50 @@ export async function isTweetTooSimilar(
   threshold = 0.5,
   numResults = 5,
 ): Promise<boolean> {
-  const newEmbedding = await embedText(newTweet); // Generate embedding for the new tweet
-  const newBuffer = Buffer.from(new Float32Array(newEmbedding).buffer);
+  try {
+    const newEmbedding = await embedText(newTweet);
+    const newBuffer = Buffer.from(new Float32Array(newEmbedding).buffer);
 
-  // Find closest matching tweet IDs using L2 distance
-  const rows = db
-    .prepare(
-      `
-    SELECT tweet_id, tweet_text, tweet_text_embedding FROM vector_tweets
-    ORDER BY vec_distance_L2(tweet_text_embedding, ?) ASC
-    LIMIT ?
-  `,
-    )
-    .all(newBuffer, numResults) as TweetRow[];
+    const query = `
+      SELECT tweet_id, tweet_text, tweet_text_embedding 
+      FROM vector_tweets
+      ORDER BY vec_distance_L2(tweet_text_embedding, ?) ASC
+      LIMIT ?
+    `;
 
-  if (!rows.length) return false; // No past tweets to compare against
+    logger.debug(
+      {
+        newTweetLength: newTweet.length,
+        embeddingLength: newEmbedding.length,
+        threshold,
+        numResults,
+      },
+      "Checking tweet similarity",
+    );
 
-  // Check if similarity exceeds threshold
-  for (const row of rows) {
-    const pastEmbedding = decodeEmbedding(row.tweet_text_embedding);
-    const similarity = cosineSimilarity(newEmbedding, pastEmbedding);
+    const rows = db.prepare(query).all(newBuffer, numResults) as TweetRow[];
 
-    if (similarity >= threshold) {
-      console.log(
-        `Tweet ${row.tweet_id} is too similar (Similarity: ${similarity})`,
-      );
-      return true;
+    if (!rows.length) {
+      logger.debug("No previous tweets to compare against");
+      return false;
     }
-  }
 
-  return false;
+    const newEmbeddingArray = Array.from(newEmbedding);
+    for (const row of rows) {
+      const pastEmbedding = decodeEmbedding(row.tweet_text_embedding);
+      const similarity = cosineSimilarity(newEmbeddingArray, pastEmbedding);
+
+      if (similarity >= threshold) {
+        logger.info(
+          `Tweet ${row.tweet_id} is too similar (Similarity: ${similarity})`,
+        );
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    logger.error({ error }, "Error checking tweet similarity");
+    return false;
+  }
 }

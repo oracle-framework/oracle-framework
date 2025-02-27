@@ -2,6 +2,7 @@ import OpenAI from "openai";
 
 import { Character } from "./characters";
 import { logger } from "./logger";
+import { config } from "./config/env";
 import {
   IMAGE_GENERATION_PROMPT_MS2,
   REPLY_GUY_PROMPT,
@@ -11,9 +12,13 @@ import {
   WAS_PROMPT_BANNED,
 } from "./prompts";
 
+logger.info("Initializing OpenAI client with:");
+logger.info(`baseURL: ${config.llmProvider.url}`);
+logger.info(`apiKey: ${config.llmProvider.apiKey.substring(0, 10)}...`);
+
 export const openai = new OpenAI({
-  baseURL: process.env["LLM_PROVIDER_URL"] || "",
-  apiKey: process.env["LLM_PROVIDER_API_KEY"] || "",
+  baseURL: config.llmProvider.url,
+  apiKey: config.llmProvider.apiKey,
 });
 
 const MAX_OUTPUT_TOKENS = 70;

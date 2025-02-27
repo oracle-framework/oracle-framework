@@ -13,12 +13,12 @@ export const createTestDb = (): Database => {
 
 // Helper methods for common test operations
 export const clearTwitterHistory = (db: Database) => {
-  db.prepare("DELETE FROM twitter_history").run();
+  db.prepare("DELETE FROM tweets").run();
 };
 
 export const getAllTweets = (db: Database): Tweet[] => {
   try {
-    const query = "SELECT * FROM twitter_history";
+    const query = "SELECT * FROM tweets";
     return db.prepare(query).all() as Tweet[];
   } catch (e) {
     logger.error("Error getting all tweets:", e);
@@ -34,7 +34,7 @@ export const getTweetById = (
   tweetId: string,
 ): Tweet | undefined => {
   try {
-    const query = "SELECT * FROM twitter_history WHERE tweet_id = ?";
+    const query = "SELECT * FROM tweets WHERE id_str = ?";
     return db.prepare(query).get(tweetId) as Tweet | undefined;
   } catch (e) {
     logger.error(`Error getting tweet by ID ${tweetId}:`, e);
