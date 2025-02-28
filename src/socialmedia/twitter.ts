@@ -421,7 +421,7 @@ export class TwitterProvider {
       let isTooLong = true;
       let attemptCount = 0;
       const maxAttempts = 3;
-      // maxpostlength is what gets passed to the prompt.  it does not abide, so its more like a suggestion
+      // maxpostlength is what gets passed to the prompt.  it does not listen, so its more like a suggestion
       let maxPostLength = this.character.postingBehavior.maxPostLength || 250;
 
       while ((isSimilar || isTooLong) && attemptCount < maxAttempts) {
@@ -433,17 +433,18 @@ export class TwitterProvider {
           logger.warn(
             `Generated tweet is too similar, retrying... Attempt ${attemptCount + 1}`,
           );
+          attemptCount++;
+          continue;
         }
         // the 280 here is the twitter limit
         isTooLong = completion.reply.length > 280;
         if (isTooLong) {
-          logger.warn(
-            `Generated tweet is ${completion.reply.length} characters long, retrying...`,
-          );
           maxPostLength -= 50;
+          attemptCount++;
+          logger.warn(
+            `Generated tweet is ${completion.reply.length} characters long, retrying with maxPostLength ${maxPostLength}`,
+          );
         }
-
-        attemptCount++;
       }
 
       if (isSimilar || isTooLong) {
@@ -617,10 +618,10 @@ export class TwitterProvider {
         // the 280 here is the twitter limit
         isTooLong = completion.reply.length > 280;
         if (isTooLong) {
-          logger.warn(
-            `Generated tweet is ${completion.reply.length} characters long, retrying...`,
-          );
           maxPostLength -= 50;
+          logger.warn(
+            `Generated tweet is ${completion.reply.length} characters long, retrying with maxPostLength ${maxPostLength}`,
+          );
         }
 
         attemptCount++;
@@ -757,7 +758,7 @@ export class TwitterProvider {
           const maxAttempts = 3;
           // maxpostlength is what gets passed to the prompt.  it does not listen, so its more like a suggestion
           let maxPostLength =
-            this.character.postingBehavior.maxPostLength || 280;
+            this.character.postingBehavior.maxPostLength || 250;
 
           while (isTooLong && attemptCount < maxAttempts) {
             completion = await generateReply(
@@ -772,10 +773,10 @@ export class TwitterProvider {
             // the 280 here is the twitter limit
             isTooLong = completion.reply.length > 280;
             if (isTooLong) {
-              logger.warn(
-                `Generated tweet is ${completion.reply.length} characters long, retrying...`,
-              );
               maxPostLength -= 50;
+              logger.warn(
+                `Generated tweet is ${completion.reply.length} characters long, retrying with maxPostLength ${maxPostLength}`,
+              );
             }
 
             attemptCount++;

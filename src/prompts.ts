@@ -79,10 +79,6 @@ Write a post for twitter from the perspective of {{agentName}}. The post must be
 {{lore}}
 </lore>
 
-<lore>
-{{lore}}
-</lore>
-
 <post_directions>
 {{postDirections}}
 </post_directions>

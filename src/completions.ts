@@ -147,7 +147,7 @@ const generateCompletionForCharacter = async (
  * @param banThreshold
  * @param inputMessage
  */
-export const handleBannedAndLengthRetries = async (
+export const handleBannedRetries = async (
   prompt: string,
   generatedReply: string,
   character: Character,
@@ -177,6 +177,7 @@ export const handleBannedAndLengthRetries = async (
         character.model = originalModel; // Restore original model
         break;
       }
+      continue;
     }
 
     currentReply = await generateCompletionForCharacter(
@@ -230,9 +231,9 @@ export const generateReply = async (
 
     logger.debug(reply);
 
-    // Add ban/length handling
+    // Add ban handling
     if (!isChatMode) {
-      reply = await handleBannedAndLengthRetries(
+      reply = await handleBannedRetries(
         prompt,
         reply,
         character,
@@ -278,7 +279,7 @@ export const generateTopicPost = async (
   const userPrompt = `Generate a post that is ${adjective} about ${topic}`;
 
   let prompt = replaceTemplateVariables(TOPIC_PROMPT, context);
-  console.log(prompt);
+
   let reply = await generateCompletionForCharacter(
     prompt,
     character,
@@ -286,13 +287,7 @@ export const generateTopicPost = async (
     userPrompt,
   );
 
-  reply = await handleBannedAndLengthRetries(
-    prompt,
-    reply,
-    character,
-    3,
-    userPrompt,
-  );
+  reply = await handleBannedRetries(prompt, reply, character, 3, userPrompt);
   reply = reply.replace(/\\n/g, "\n");
 
   const topicPostLog = `<b>${character.username}, topic: ${topic}, adjective: ${adjective}</b>:\n\n${reply}`;
