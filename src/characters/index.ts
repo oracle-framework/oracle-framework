@@ -24,6 +24,8 @@ export type CharacterPostingBehavior = {
   imagePromptChance?: number; // if generateImagePrompt is true, generate an image prompt for the post this percentage of the time
   stickerChance?: number; // send a sticker after posting this percentage of the time
   stickerFiles?: string[]; // if stickerChance is true, send one of these stickers
+  maxPostLength?: number; // if set, don't post if the post is longer than this
+  twitterRules?: string[]; // if set, follow these rules when posting to twitter
 };
 
 export type ImageGenerationBehavior = {
