@@ -218,7 +218,7 @@ export const generateReply = async (
     };
 
     const prompt = generatePrompt(context, isChatMode, inputMessage.length);
-    console.log(prompt);
+
     logger.debug(prompt);
 
     let reply = await generateCompletionForCharacter(

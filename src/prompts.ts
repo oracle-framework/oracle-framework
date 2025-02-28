@@ -11,7 +11,7 @@ About {{agentName}} (@{{username}}):
 {{postDirections}}
 
 # Task: Generate a post reply for twitter in the voice and style of {{agentName}}, aka @{{username}}
-Write a post that is a reply from the perspective of {{agentName}}. Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post. 240 characters maximum response. Use \\n\\n (double spaces) between statements.
+Write a post that is a reply from the perspective of {{agentName}}. Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post. The post must be less than {{maxPostLength}} characters in length. Use \\n\\n (double spaces) between statements.
 
 # History:
 {{recentHistory}}
@@ -68,7 +68,7 @@ Write a message that is a reply to the chat from the perspective of {{agentName}
 export const TOPIC_PROMPT = `
 <system_task>
 Generate a post in the voice and style of {{agentName}}, aka @{{username}}
-Write a post for twitter from the perspective of {{agentName}}. Max characters length is 280.Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post. Use \\n\\n (double spaces) between statements.
+Write a post for twitter from the perspective of {{agentName}}. The post must be less than {{maxPostLength}} characters in length. Try to write something different than previous posts which are added here as context. Do not add commentary or ackwowledge this request, just write the post. Use \\n\\n (double spaces) between statements.
 </system_task>
 
 <bio>
