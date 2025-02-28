@@ -159,25 +159,22 @@ export const handleBannedRetries = async (
   let wasBanned = await checkIfPromptWasBanned(currentReply, character);
 
   while (wasBanned) {
-    if (wasBanned) {
-      banCount++;
-      logger.info(`The prompt was banned! Attempt ${banCount}/${banThreshold}`);
+    banCount++;
+    logger.info(`The prompt was banned! Attempt ${banCount}/${banThreshold}`);
 
-      // Use fallback model after threshold attempts
-      if (banCount >= banThreshold && character.fallbackModel) {
-        logger.info("Switching to fallback model:", character.fallbackModel);
-        const originalModel = character.model;
-        character.model = character.fallbackModel;
-        currentReply = await generateCompletionForCharacter(
-          prompt,
-          character,
-          false,
-          inputMessage,
-        );
-        character.model = originalModel; // Restore original model
-        break;
-      }
-      continue;
+    // Use fallback model after threshold attempts
+    if (banCount >= banThreshold && character.fallbackModel) {
+      logger.info("Switching to fallback model:", character.fallbackModel);
+      const originalModel = character.model;
+      character.model = character.fallbackModel;
+      currentReply = await generateCompletionForCharacter(
+        prompt,
+        character,
+        false,
+        inputMessage,
+      );
+      character.model = originalModel; // Restore original model
+      break;
     }
 
     currentReply = await generateCompletionForCharacter(
