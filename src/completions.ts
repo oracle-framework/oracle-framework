@@ -178,19 +178,43 @@ export const handleBannedAndLengthRetries = async (
         character.model = originalModel; // Restore original model
         break;
       }
+      currentReply = await generateCompletionForCharacter(
+        prompt,
+        character,
+        false,
+        inputMessage,
+      );
     } else {
-      logger.info(`The content was too long (>${maxLength})! Going again.`);
-    }
+      let promptedMaxLength = maxLength;
+      let lengthAttempts = 0;
+      const MAX_LENGTH_ATTEMPTS = 5;
 
-    currentReply = await generateCompletionForCharacter(
-      prompt,
-      character,
-      false,
-      inputMessage,
-    );
+      while (currentReply.length > maxLength) {
+        logger.warn(
+          `The content was > ${maxLength}! Attempting rewrite ${lengthAttempts + 1}/${MAX_LENGTH_ATTEMPTS} with prompted max length of ${promptedMaxLength}.`,
+        );
+
+        currentReply = await reWriteTwitterPost(
+          character,
+          currentReply,
+          `The post is too long. Max length is ${promptedMaxLength} characters.`,
+        );
+        // start with max length and reduce each time it doesn't listen
+        promptedMaxLength -= maxLength / MAX_LENGTH_ATTEMPTS;
+        lengthAttempts++;
+        // throw an error if we've tried too many times
+        if (lengthAttempts === MAX_LENGTH_ATTEMPTS) {
+          logger.error(
+            `Failed to reduce length after ${MAX_LENGTH_ATTEMPTS} attempts.`,
+          );
+          throw new Error(
+            `Unable to generate content within the ${maxLength} character limit after ${MAX_LENGTH_ATTEMPTS} attempts.`,
+          );
+        }
+      }
+    }
     wasBanned = await checkIfPromptWasBanned(currentReply, character);
   }
-
   return currentReply;
 };
 
@@ -345,6 +369,32 @@ export const generateTweetSummary = async (
     messages: [
       { role: "system", content: prompt },
       { role: "user", content: tweetText },
+    ],
+    max_tokens: MAX_OUTPUT_TOKENS,
+    temperature: character.temperature,
+  });
+
+  if (!completion.choices?.[0]?.message?.content) {
+    throw new Error(
+      `No content in API response: ${JSON.stringify(completion)}`,
+    );
+  }
+
+  return completion.choices[0].message.content;
+};
+
+export const reWriteTwitterPost = async (
+  character: Character,
+  post: string,
+  reason: string,
+) => {
+  const prompt = `<SYSTEM_TASK>Rewrite this twitter post maintining the same exact voice, style, ideas, and text formatting. The reason to rewrite is: ${reason}</SYSTEM_TASK>`;
+
+  const completion = await openai.chat.completions.create({
+    model: character.model,
+    messages: [
+      { role: "system", content: prompt },
+      { role: "user", content: post },
     ],
     max_tokens: MAX_OUTPUT_TOKENS,
     temperature: character.temperature,
