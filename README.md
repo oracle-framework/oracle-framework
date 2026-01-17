@@ -197,6 +197,7 @@ Characters are defined in a single JSON file under `src/characters/characters.js
 - **postingBehavior**: Technical settings for posting frequency and style
 - **model**: Primary LLM to use for generation
 - **temperature**: "Creativity" level - 0.0-1.0, higher = more creative. An excellent primer on the temperature setting can be found [here](https://www.vellum.ai/llm-parameters/temperature).
+- **telegramBotUsername**: The name of your Telegram bot, mandatory must be set for TG AI agent to work 
 
 For a complete example, check out `src/characters/characters.json`. We have a sample character called Carolaine. You can see her in action at [@carolainetrades](https://twitter.com/carolainetrades).
 
